@@ -1,13 +1,5 @@
 <div align="center">
 
-```
-__        __                   _
-\ \      / /__  _____   ____ _(_)
- \ \    / / _ \/ __\ \ / / _` | |
-  \ \  / /  __/\__ \\ V / (_| | |
-   \_\/_/ \___||___/ \_/ \__,_|_|
-```
-
 # Vesvai
 
 **An AI coding agent that speaks your language, runs your way, and stays out of your way.**
@@ -186,12 +178,4 @@ Requires Go 1.26.5+. No runtime dependencies — the binary is self-contained.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Join [Discord](https://discord.gg/vesvai) → `#contributors`.
-
----
-
-<div align="center">
-
-**[Apache 2.0](./LICENSE) © 2026 Vesvai**
-
-</div>
+See [CONTRIBUTING.md](CONTRIBUTING.md).
