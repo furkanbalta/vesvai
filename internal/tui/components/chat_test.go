@@ -6,6 +6,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 
+	"github.com/vesvai/vesvai/internal/llm"
 	"github.com/vesvai/vesvai/internal/tui/layout"
 	"github.com/vesvai/vesvai/internal/tui/styles"
 )
@@ -264,6 +265,141 @@ func TestChatLazyLoadStreamingInterplay(t *testing.T) {
 	if !strings.Contains(oldText, "recent-0") {
 		t.Errorf("cached item content changed after lazy load: %q", oldText)
 	}
+}
+
+func TestChatViewSwitchNoResidue(t *testing.T) {
+	styles.RegisterDefaults()
+	styles.Set("dark")
+	s := tcell.NewSimulationScreen("UTF-8")
+	if err := s.Init(); err != nil {
+		t.Fatal(err)
+	}
+	defer s.Fini()
+	s.SetSize(100, 30)
+	bounds := layout.Region{Left: 1, Top: 1, Width: 98, Height: 22}
+
+	main := []*ChatItem{
+		{Kind: ItemUser, Text: "Fix the parser bug"},
+		{Kind: ItemThinking, Reasoning: "looking at the code"},
+		{Kind: ItemTool, ToolName: "todowrite:3 items", ToolOutput: "[ ] fix parser\n[ ] add tests\n[ ] commit"},
+		{Kind: ItemSubagent, AgentID: "sub-1", SubagentName: "developer", SubagentStatus: "finished", SubagentTask: "Refactor the parser", SubagentOutput: "Done.\n```\n}\n```"},
+		{Kind: ItemAssistant, Text: "Refactored."},
+		{Kind: ItemFinished, ID: "main"},
+	}
+	sub := []*ChatItem{
+		{Kind: ItemUser, Text: "Refactor the parser"},
+		{Kind: ItemThinking, Reasoning: "analyzing"},
+		{Kind: ItemTool, ToolName: "read:parser.go", ToolOutput: "package parser\nfunc parse() {\n}"},
+		{Kind: ItemTool, ToolName: "edit:parser.go", ToolOutput: "done"},
+		{Kind: ItemAssistant, Text: "Here is the refactor:\n\n```go\nfunc (p *Parser) Run() {\n\tresult, err := p.parse()\n}\n```"},
+		{Kind: ItemFinished, ID: "sub-1"},
+	}
+
+	c := NewChat()
+	c.SetItems(main)
+	c.Draw(s, bounds, true)
+	before := screenContent(s, 100, 30)
+
+	c.SetItems(sub)
+	c.SetBack(true)
+	c.Draw(s, bounds, true)
+
+	c.SetItems(main)
+	c.SetBack(false)
+	c.Draw(s, bounds, true)
+	after := screenContent(s, 100, 30)
+
+	if before != after {
+		t.Fatalf("residue left on screen after subagent view switch:\n-- before --\n%s\n-- after --\n%s", before, after)
+	}
+}
+
+func TestChatBackHeaderAccountsForHeaderRow(t *testing.T) {
+	styles.RegisterDefaults()
+	styles.Set("dark")
+	s := tcell.NewSimulationScreen("UTF-8")
+	if err := s.Init(); err != nil {
+		t.Fatal(err)
+	}
+	defer s.Fini()
+	s.SetSize(100, 30)
+	bounds := layout.Region{Left: 0, Top: 0, Width: 100, Height: 28}
+
+	c := NewChat()
+	for i := 0; i < 15; i++ {
+		c.AppendItem(&ChatItem{Kind: ItemUser, Text: "question " + itoa(i)})
+		c.AppendItem(&ChatItem{Kind: ItemAssistant, Text: "answer " + itoa(i)})
+	}
+
+	c.Draw(s, bounds, true)
+	total := len(c.flat)
+	if c.scroll != total-bounds.Height {
+		t.Fatalf("scroll without back header = %d, want %d", c.scroll, total-bounds.Height)
+	}
+	if c.lastVisible != bounds.Height {
+		t.Fatalf("lastVisible without header = %d, want %d", c.lastVisible, bounds.Height)
+	}
+
+	c.SetBack(true)
+	c.Draw(s, bounds, true)
+	want := total - (bounds.Height - 1)
+	if c.scroll != want {
+		t.Fatalf("scroll with back header = %d, want %d (header row must not shrink the viewport)", c.scroll, want)
+	}
+	if c.lastVisible != bounds.Height-1 {
+		t.Fatalf("lastVisible with header = %d, want %d", c.lastVisible, bounds.Height-1)
+	}
+}
+
+func screenContent(s tcell.Screen, w, h int) string {
+	var b strings.Builder
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			mainc, _, _, _ := s.GetContent(x, y)
+			b.WriteRune(mainc)
+		}
+		b.WriteByte('\n')
+	}
+	return b.String()
+}
+
+func TestChatLinesNeverExceedWidth(t *testing.T) {
+	styles.RegisterDefaults()
+	styles.Set("dark")
+	width := 96
+	items := []*ChatItem{
+		{Kind: ItemUser, Text: "hello"},
+		{Kind: ItemUser, Text: "hello", Attachments: []llm.Attachment{{Type: llm.AttachmentTypeFile, FileName: strings.Repeat("verylongfilename", 6)}}},
+		{Kind: ItemAssistant, Text: "```go\n" + strings.Repeat("x := someVeryLongFunctionName(argumentOne, argumentTwo) // comment\n", 3) + "```"},
+		{Kind: ItemTool, ToolName: "edit:" + strings.Repeat("a/", 80) + "file.go", ToolArgs: `{"oldString":"a","newString":"b"}`, Diff: ComputeDiff("a", "b"), ToolOutput: "ok"},
+		{Kind: ItemTool, ToolName: "write:" + strings.Repeat("a/", 80) + "file.go", WriteContent: "package main\nfunc main() {}\n", ToolOutput: "ok"},
+		{Kind: ItemTool, ToolName: "bash:" + strings.Repeat("echo hi && ", 30), ToolOutput: strings.Repeat("output line\n", 3)},
+		{Kind: ItemTool, ToolName: "todowrite:3 items", ToolOutput: "[ ] task one\n[~] task two\n[x] task three"},
+		{Kind: ItemTool, ToolName: "read:" + strings.Repeat("a/", 80) + "file.go", ToolOutput: strings.Repeat("line of output\n", 3)},
+		{Kind: ItemSubagent, AgentID: "s1", SubagentName: strings.Repeat("verylongsubagentname", 6), SubagentStatus: "finished", SubagentTask: strings.Repeat("do the thing ", 20), SubagentOutput: strings.Repeat("output\n", 5)},
+		{Kind: ItemThinking, Reasoning: strings.Repeat("reasoning words ", 30), Expanded: true},
+	}
+	c := NewChat()
+	for _, it := range items {
+		c.AppendItem(it)
+	}
+	c.rebuildFlat(width)
+	for i, ln := range c.flat {
+		if ln == nil {
+			continue
+		}
+		if ln.Width() > width {
+			t.Errorf("flat line %d width=%d > %d: %q", i, ln.Width(), width, lineText(ln))
+		}
+	}
+}
+
+func lineText(l Line) string {
+	var b strings.Builder
+	for _, c := range l {
+		b.WriteRune(c.R)
+	}
+	return b.String()
 }
 
 func BenchmarkChatStreamingDraw(b *testing.B) {

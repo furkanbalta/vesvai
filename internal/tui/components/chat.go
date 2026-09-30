@@ -374,7 +374,6 @@ func (c *Chat) Draw(s tcell.Screen, bounds layout.Region, focused bool) {
 		return
 	}
 	c.lastWidth = innerW
-	c.lastVisible = bounds.Height
 
 	if c.dirty || c.flatRev != c.lastWidth || c.flat == nil {
 		c.rebuildFlat(innerW)
@@ -385,6 +384,21 @@ func (c *Chat) Draw(s tcell.Screen, bounds layout.Region, focused bool) {
 		return
 	}
 
+	if c.back && bounds.Height > 2 {
+		headerStyle := th.Base().Foreground(th.Accent).Bold(true).Background(th.Background)
+		backText := "← back to main chat (Esc)"
+		DrawText(s, bounds.Left+1, bounds.Top, backText, headerStyle)
+		c.backVisible = true
+		c.backX0 = bounds.Left + 1
+		c.backX1 = bounds.Left + 1 + len([]rune(backText)) - 1
+		c.backY = bounds.Top
+		bounds.Top++
+		bounds.Height--
+	} else {
+		c.backVisible = false
+	}
+
+	c.lastVisible = bounds.Height
 	visible := bounds.Height
 	if c.follow {
 		c.scroll = ClampScroll(total-visible, total)
@@ -399,21 +413,6 @@ func (c *Chat) Draw(s tcell.Screen, bounds layout.Region, focused bool) {
 	c.wasAtBottom = c.scroll >= maxS-2
 
 	offset := c.scroll
-
-	if c.back && bounds.Height > 2 {
-		headerStyle := th.Base().Foreground(th.Accent).Bold(true).Background(th.Background)
-		backText := "← back to main chat (Esc)"
-		DrawText(s, bounds.Left+1, bounds.Top, backText, headerStyle)
-		c.backVisible = true
-		c.backX0 = bounds.Left + 1
-		c.backX1 = bounds.Left + 1 + len([]rune(backText)) - 1
-		c.backY = bounds.Top
-		bounds.Top++
-		bounds.Height--
-		visible = bounds.Height
-	} else {
-		c.backVisible = false
-	}
 
 	markerLine := -1
 	if focused && c.itemCursor >= 0 && c.itemCursor < len(c.flatItems) {
@@ -569,36 +568,58 @@ func (c *Chat) itemLines(it *ChatItem, width int) []Line {
 	if width < 1 {
 		width = 80
 	}
+	var lines []Line
 	switch it.Kind {
 	case ItemUser:
-		return c.userCardLines(it, width)
+		lines = c.userCardLines(it, width)
 	case ItemAssistant:
-		return MdToLines(it.Text, width, styles.Current())
+		lines = MdToLines(it.Text, width, styles.Current())
 	case ItemThinking:
-		return c.thinkingLines(it, width)
+		lines = c.thinkingLines(it, width)
 	case ItemTool:
-		return c.toolLines(it, width)
+		lines = c.toolLines(it, width)
 	case ItemSubagent:
-		return c.subagentLines(it, width)
+		lines = c.subagentLines(it, width)
 	case ItemFinished:
 		return nil
 	case ItemError:
 		th := styles.Current()
-		return []Line{LineFromSegments([]Segment{
+		lines = []Line{LineFromSegments([]Segment{
 			{Text: "✖ error: " + it.Text, Style: th.Base().Foreground(th.Error).Bold(true).Background(th.Background)},
 		}, width)}
 	case ItemCompaction:
 		th := styles.Current()
-		return []Line{LineFromSegments([]Segment{
+		lines = []Line{LineFromSegments([]Segment{
 			{Text: "  " + it.Text, Style: th.Base().Foreground(th.Muted).Background(th.Background)},
 		}, width)}
 	case ItemCompactionDivider:
 		th := styles.Current()
-		return []Line{LineFromSegments([]Segment{
+		lines = []Line{LineFromSegments([]Segment{
 			{Text: "─ " + it.Text + " ─", Style: th.Base().Foreground(th.Muted).Background(th.Background)},
 		}, width)}
 	}
-	return nil
+	return clipLinesToWidth(lines, width)
+}
+
+func clipLinesToWidth(lines []Line, width int) []Line {
+	for i, l := range lines {
+		if l.Width() > width {
+			lines[i] = clipLineToWidth(l, width)
+		}
+	}
+	return lines
+}
+
+func clipLineToWidth(l Line, width int) Line {
+	w := 0
+	for i, c := range l {
+		cw := cellWidth(c.R)
+		if w+cw > width {
+			return l[:i]
+		}
+		w += cw
+	}
+	return l
 }
 
 func (c *Chat) userCardLines(it *ChatItem, width int) []Line {
@@ -628,7 +649,7 @@ func (c *Chat) userCardLines(it *ChatItem, width int) []Line {
 
 func cardEdge(left, right rune, width int, border tcell.Style) Line {
 	line := Line{{R: left, S: border}}
-	for len(line) < width-1 {
+	for line.Width() < width-1 {
 		line = append(line, Cell{R: '─', S: border})
 	}
 	line = append(line, Cell{R: right, S: border})
@@ -639,7 +660,7 @@ func cardRow(ln Line, width int, border tcell.Style, th styles.Theme) Line {
 	bg := th.Base().Foreground(th.Foreground).Background(th.UserBg)
 	row := Line{{R: '│', S: border}, {R: ' ', S: bg}}
 	row = append(row, ln...)
-	for len(row) < width-1 {
+	for row.Width() < width-1 {
 		row = append(row, Cell{R: ' ', S: bg})
 	}
 	row = append(row, Cell{R: '│', S: border})
@@ -868,7 +889,14 @@ func (c *Chat) toolStatusLine(it *ChatItem, width int, mark rune, color tcell.Co
 		left = append(left, Cell{R: r, S: th.Base().Foreground(th.Foreground).Bold(true).Background(th.Background)})
 	}
 	left = append(left, Cell{R: ' ', S: th.Base()})
-	for left.Width()+statusW < width {
+	maxLeft := width - statusW
+	if maxLeft < 0 {
+		maxLeft = 0
+	}
+	if left.Width() > maxLeft {
+		left = TruncateLine(left, maxLeft)
+	}
+	for left.Width() < maxLeft {
 		left = append(left, Cell{R: ' ', S: th.Base()})
 	}
 	left = append(left, statusCells...)
@@ -1088,7 +1116,7 @@ func cardFooter(border tcell.Style, dim tcell.Style, bg tcell.Style, width int, 
 
 func bottomEdge(border tcell.Style, width int) Line {
 	bottom := Line{{R: '╰', S: border}}
-	for i := 0; i < width-1; i++ {
+	for i := 0; i < width-2; i++ {
 		bottom = append(bottom, Cell{R: '─', S: border})
 	}
 	bottom = append(bottom, Cell{R: '╯', S: border})
@@ -1256,7 +1284,7 @@ func (c *Chat) bashCardLines(it *ChatItem, width int) []Line {
 	lines = append(lines, footer)
 
 	bottom := Line{{R: '╰', S: border}}
-	for i := 0; i < width-1; i++ {
+	for i := 0; i < width-2; i++ {
 		bottom = append(bottom, Cell{R: '─', S: border})
 	}
 	bottom = append(bottom, Cell{R: '╯', S: border})
@@ -1298,7 +1326,7 @@ func (c *Chat) editCardLines(it *ChatItem, width int) []Line {
 	lines = append(lines, top)
 
 	pathLine := Line{{R: '│', S: border}, {R: ' ', S: muted}}
-	for _, r := range filePath {
+	for _, r := range truncateToDisplayWidth(filePath, width-4) {
 		pathLine = append(pathLine, Cell{R: r, S: accent.Bold(true)})
 	}
 	for pathLine.Width() < width-1 {
@@ -1441,7 +1469,7 @@ func (c *Chat) writeCardLines(it *ChatItem, width int) []Line {
 	lines = append(lines, top)
 
 	pathLine := Line{{R: '│', S: border}, {R: ' ', S: muted}}
-	for _, r := range filePath {
+	for _, r := range truncateToDisplayWidth(filePath, width-4) {
 		pathLine = append(pathLine, Cell{R: r, S: accent.Bold(true)})
 	}
 	for pathLine.Width() < width-1 {
@@ -1515,7 +1543,7 @@ func (c *Chat) writeCardLines(it *ChatItem, width int) []Line {
 	}
 
 	footer := Line{{R: '└', S: border}}
-	for i := 0; i < width-1; i++ {
+	for i := 0; i < width-2; i++ {
 		footer = append(footer, Cell{R: '─', S: border})
 	}
 	footer = append(footer, Cell{R: '┘', S: border})
@@ -1682,10 +1710,18 @@ func (c *Chat) subagentLines(it *ChatItem, width int) []Line {
 	top = append(top, Cell{R: ' ', S: th.Base()})
 	top = append(top, Cell{R: mark, S: subagentColor})
 	top = append(top, Cell{R: ' ', S: th.Base()})
-	for _, r := range it.SubagentName {
+	historyHint := "History"
+	maxName := width - 13
+	if maxName < 1 {
+		maxName = 1
+	}
+	name := it.SubagentName
+	if DisplayWidth(name) > maxName {
+		name = truncateToDisplayWidth(name, maxName-1) + "…"
+	}
+	for _, r := range name {
 		top = append(top, Cell{R: r, S: subagentColor})
 	}
-	historyHint := "History"
 	historyStart := width - 1 - DisplayWidth(historyHint)
 	for top.Width() < historyStart {
 		top = append(top, Cell{R: '─', S: border})
