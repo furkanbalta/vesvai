@@ -1,10 +1,15 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
-	json "github.com/goccy/go-json"
 	"io"
+	"strings"
+	"time"
 
+	json "github.com/goccy/go-json"
+
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 
 	"github.com/vesvai/vesvai/internal/core/cache"
@@ -58,8 +63,281 @@ func (c *CLI) newProviderCommand() *cobra.Command {
 		Use:   "providers",
 		Short: "Manage providers",
 	}
-	cmd.AddCommand(c.newProviderListCommand(), c.newProviderRemoveCommand(), c.newProviderRefreshCommand())
+	cmd.AddCommand(c.newProviderAddCommand(), c.newProviderListCommand(), c.newProviderRemoveCommand(), c.newProviderRefreshCommand())
 	return cmd
+}
+
+type providerAddFlags struct {
+	name       string
+	driver     string
+	apiKey     string
+	baseURL    string
+	headers    map[string]string
+	timeout    int
+	maxRetries int
+
+	nameSet    bool
+	driverSet  bool
+	apiKeySet  bool
+	baseURLSet bool
+	headersSet bool
+}
+
+type providerAddPrompts struct {
+	selectProvider func() (string, error)
+	selectDriver   func() (string, error)
+	promptAPIKey   func() (string, error)
+	promptString   func(label string) (string, error)
+	promptHeaders  func() (map[string]string, error)
+	sync           func(config.LLMConfig) error
+}
+
+func (c *CLI) newProviderAddCommand() *cobra.Command {
+	f := &providerAddFlags{}
+	cmd := &cobra.Command{
+		Use:   "add",
+		Short: "Add a provider (interactive unless flags are given)",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			flags := cmd.Flags()
+			f.nameSet = flags.Changed("name")
+			f.driverSet = flags.Changed("driver")
+			f.apiKeySet = flags.Changed("api-key")
+			f.baseURLSet = flags.Changed("base-url")
+			f.headersSet = flags.Changed("header")
+			p := providerAddPrompts{
+				selectProvider: c.selectProviderWithCustom,
+				selectDriver:   c.selectDriver,
+				promptAPIKey:   c.promptAPIKey,
+				promptString:   promptString,
+				promptHeaders:  promptHeaders,
+				sync:           c.syncAddedProvider,
+			}
+			return c.runProviderAdd(cmd.OutOrStdout(), f, p)
+		},
+	}
+	cmd.Flags().StringVar(&f.name, "name", "", "provider name (registered provider)")
+	cmd.Flags().StringVar(&f.driver, "driver", "", "driver for custom endpoints: openai, claude, or gemini")
+	cmd.Flags().StringVar(&f.apiKey, "api-key", "", "provider API key")
+	cmd.Flags().StringVar(&f.baseURL, "base-url", "", "base URL (required for driver entries)")
+	cmd.Flags().StringToStringVar(&f.headers, "header", nil, "request header KEY=VALUE (repeatable)")
+	cmd.Flags().IntVar(&f.timeout, "timeout", 0, "request timeout in seconds")
+	cmd.Flags().IntVar(&f.maxRetries, "max-retries", 0, "maximum retry count")
+	return cmd
+}
+
+func (c *CLI) runProviderAdd(out io.Writer, f *providerAddFlags, p providerAddPrompts) error {
+	name := strings.TrimSpace(f.name)
+	driver := strings.ToLower(strings.TrimSpace(f.driver))
+
+	interactive := !f.nameSet && !f.driverSet && !f.baseURLSet
+
+	if driver != "" && !llm.HasDriver(driver) {
+		return fmt.Errorf("cli: unknown driver %q (available: %v)", driver, llm.ListDrivers())
+	}
+
+	if name == "" && driver == "" {
+		choice, err := p.selectProvider()
+		if err != nil {
+			return err
+		}
+		choice = strings.TrimSpace(choice)
+		if choice == customEndpointOption {
+			d, err := p.selectDriver()
+			if err != nil {
+				return err
+			}
+			driver = strings.ToLower(strings.TrimSpace(d))
+		} else {
+			name = choice
+			if name == "" {
+				return errors.New("cli: provider name is required")
+			}
+		}
+	}
+	if name != "" && !llm.HasProvider(name) && driver == "" {
+		return fmt.Errorf("cli: unknown provider %q (available: %v)", name, llm.ListProviders())
+	}
+
+	if f.timeout < 0 {
+		return errors.New("cli: timeout must be >= 0")
+	}
+	if f.maxRetries < 0 {
+		return errors.New("cli: max-retries must be >= 0")
+	}
+
+	apiKey := strings.TrimSpace(f.apiKey)
+	if interactive && !f.apiKeySet {
+		k, err := p.promptAPIKey()
+		if err != nil {
+			return err
+		}
+		apiKey = k
+	}
+
+	baseURL := strings.TrimSpace(f.baseURL)
+	headers := f.headers
+	note := ""
+
+	if name == "" || !llm.HasProvider(name) {
+		if interactive {
+			if baseURL == "" {
+				u, err := p.promptString("Base URL")
+				if err != nil {
+					return err
+				}
+				baseURL = strings.TrimSpace(u)
+			}
+			if !f.headersSet || len(headers) == 0 {
+				h, err := p.promptHeaders()
+				if err != nil {
+					return err
+				}
+				headers = h
+			}
+		} else if baseURL == "" {
+			return fmt.Errorf("cli: base-url is required for driver entries (--driver %s)", driver)
+		}
+	} else if baseURL != "" || driver != "" {
+		note = "note: named providers use built-in endpoints; base_url/driver are stored but ignored"
+	}
+
+	cfg := config.LLMConfig{
+		Provider:   name,
+		Driver:     driver,
+		APIKey:     apiKey,
+		BaseURL:    baseURL,
+		Timeout:    f.timeout,
+		MaxRetries: f.maxRetries,
+		Headers:    headers,
+	}
+
+	existing, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("cli: load config: %w", err)
+	}
+
+	identity := cfg.Provider
+	if identity == "" {
+		identity = cfg.Driver
+	}
+
+	action := "added"
+	if cfg.Provider == "" {
+		for _, e := range existing.Providers {
+			if e.Provider == "" {
+				fmt.Fprintf(out, "warning: replacing existing driver-only entry (driver=%q)\n", e.Driver)
+				action = "updated"
+				break
+			}
+		}
+	} else {
+		for _, e := range existing.Providers {
+			if e.Provider == cfg.Provider {
+				action = "updated"
+				break
+			}
+		}
+	}
+
+	if err := p.sync(cfg); err != nil {
+		c.log.Fwarn("provider %q models sync failed: %v", identity, err)
+	}
+
+	if err := config.UpsertProvider(cfg); err != nil {
+		return fmt.Errorf("cli: save provider: %w", err)
+	}
+
+	c.log.Finfo("provider %q %s", identity, action)
+	if note != "" {
+		fmt.Fprintln(out, note)
+	}
+	fmt.Fprintf(out, "provider %q %s (driver=%s base_url=%s api_key=%s)\n",
+		identity, action, dashIfEmpty(cfg.Driver), dashIfEmpty(cfg.BaseURL), maskAPIKey(cfg.APIKey))
+	return nil
+}
+
+func dashIfEmpty(s string) string {
+	if s == "" {
+		return "-"
+	}
+	return s
+}
+
+const customEndpointOption = "Custom"
+
+func (c *CLI) selectProviderWithCustom() (string, error) {
+	items := append(llm.ListProviders(), customEndpointOption)
+
+	p := promptui.Select{
+		Label: "Select provider",
+		Items: items,
+		Size:  10,
+		Searcher: func(input string, index int) bool {
+			searchValue := strings.ToLower(input)
+			return strings.Contains(strings.ToLower(items[index]), searchValue)
+		},
+	}
+	_, result, err := p.Run()
+	if err != nil {
+		return "", fmt.Errorf("cli: select provider: %w", err)
+	}
+	return result, nil
+}
+
+func (c *CLI) selectDriver() (string, error) {
+	names := llm.ListDrivers()
+	if len(names) == 0 {
+		return "", errors.New("cli: no drivers registered")
+	}
+
+	p := promptui.Select{
+		Label: "Select driver",
+		Items: names,
+		Size:  10,
+		Searcher: func(input string, index int) bool {
+			searchValue := strings.ToLower(input)
+			return strings.Contains(strings.ToLower(names[index]), searchValue)
+		},
+	}
+	_, result, err := p.Run()
+	if err != nil {
+		return "", fmt.Errorf("cli: select driver: %w", err)
+	}
+	return result, nil
+}
+
+func (c *CLI) syncAddedProvider(cfg config.LLMConfig) error {
+	identity := cfg.Provider
+	if identity == "" {
+		identity = cfg.Driver
+	}
+
+	loaded := make(chan llm.ModelsLoaded, 1)
+	handler := func(ml llm.ModelsLoaded) {
+		if ml.Provider == identity {
+			select {
+			case loaded <- ml:
+			default:
+			}
+		}
+	}
+	if err := c.bus.Subscribe(event.TopicModelsLoaded, handler); err != nil {
+		return fmt.Errorf("cli: subscribe models loaded: %w", err)
+	}
+	defer c.bus.Unsubscribe(event.TopicModelsLoaded, handler)
+
+	c.bus.Publish(event.TopicProviderAdded, cfg)
+
+	select {
+	case ml := <-loaded:
+		if ml.Err != nil {
+			return fmt.Errorf("cli: provider %q: %w", identity, ml.Err)
+		}
+		return nil
+	case <-time.After(35 * time.Second):
+		return fmt.Errorf("cli: timed out syncing provider %q", identity)
+	}
 }
 
 func (c *CLI) newProviderListCommand() *cobra.Command {

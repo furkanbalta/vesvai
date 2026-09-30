@@ -135,9 +135,32 @@ succeeds when the credentials work.
 
 | Command | Description |
 |---|---|
+| `vesvai providers add` | Add a provider with full config options |
 | `vesvai providers list` | List providers with masked key and cached model count |
 | `vesvai providers refresh [--provider NAME]` | Re-fetch models, bypassing the cache |
 | `vesvai providers remove NAME` | Remove a provider and its cached models |
+
+`vesvai providers add` exposes every provider config field:
+
+```bash
+vesvai providers add --name anthropic --api-key [**REDACTED**]
+vesvai providers add --driver openai --base-url http://localhost:11434/v1 --api-key ollama
+```
+
+| Flag | Description |
+|---|---|
+| `--name` | Registered provider name, or a custom name when combined with `--driver`. Interactive picker (with a "Custom endpoint" option) when omitted |
+| `--driver` | Driver for custom endpoints (`openai`, `claude`, `gemini`). Requires `--base-url` |
+| `--api-key` | API key. Masked prompt in interactive mode; may be empty |
+| `--base-url` | Base URL. Required for driver entries |
+| `--header KEY=VALUE` | Request header (repeatable) |
+| `--timeout` | Request timeout in seconds |
+| `--max-retries` | Maximum retry count |
+
+Running it with any of `--name`, `--driver`, or `--base-url` skips all prompts.
+Models are fetched in the background after saving; a failed fetch does not block
+the add — run `vesvai providers refresh` to retry. Registered names use built-in
+endpoints; `--base-url`/`--driver` only affect driver entries and custom names.
 
 ## `vesvai models`
 
