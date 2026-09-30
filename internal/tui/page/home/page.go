@@ -1,6 +1,7 @@
 package home
 
 import (
+	"math/rand"
 	"strings"
 	"time"
 
@@ -34,6 +35,7 @@ type Page struct {
 	status        *components.StatusBar
 	chat          *components.Chat
 	attachmentBar *components.AttachmentBar
+	hint          string
 
 	skillPicker   *components.Picker
 	mentionPicker *components.Picker
@@ -52,6 +54,7 @@ func New() *Page {
 		status:        components.NewStatusBar(),
 		chat:          components.NewChat(),
 		attachmentBar: components.NewAttachmentBar(),
+		hint:          randomHint(),
 		skillPicker:   components.NewPicker("Skills — type to filter"),
 		mentionPicker: components.NewPicker("Mentions — type to filter"),
 		askPicker:     components.NewAskPicker(),
@@ -68,6 +71,26 @@ func (p *Page) SetSkills(items []components.ListItem) {
 
 func (p *Page) SetMentionItems(items []components.ListItem) {
 	p.mentionPicker.SetAll(items)
+}
+
+var defaultHints = []string{
+	"use '@' to mention files, folders, or agents",
+	"use '/' to run a skill",
+	"use '/init' to create an AGENTS.md for this project",
+	"use '/rule' to save a rule Vesvai always follows",
+	"use '/review' to review a pull request",
+	"use '/batch' to change many files at once",
+	"press Ctrl+P for settings",
+	"press Ctrl+T to cycle the theme",
+	"press Esc twice to stop a running agent",
+	"paste or drop a file to attach it",
+}
+
+func randomHint() string {
+	if len(defaultHints) == 0 {
+		return ""
+	}
+	return defaultHints[rand.Intn(len(defaultHints))]
 }
 
 func (p *Page) PickOpen() bool { return p.pickKind != pickNone }
@@ -445,6 +468,8 @@ func (p *Page) Draw(s tcell.Screen, bounds layout.Region, focused bool) {
 
 	p.input.Draw(s, inputRegion, focused && p.focus == focusInput)
 
+	p.drawHint(s, bounds, inputRegion)
+
 	p.syncPickers()
 	if p.pickKind != pickNone {
 		var count int
@@ -498,6 +523,25 @@ func (p *Page) Draw(s tcell.Screen, bounds layout.Region, focused bool) {
 			p.askPicker.Draw(s, pickRegion)
 		}
 	}
+}
+
+func (p *Page) drawHint(s tcell.Screen, bounds, inputRegion layout.Region) {
+	if p.hint == "" || !p.input.Empty() || p.chat.HasItems() || p.attachmentBar.Count() > 0 || p.askPicker.Active() {
+		return
+	}
+	y := inputRegion.Top - 1
+	if y < bounds.Top || y >= bounds.Bottom() {
+		return
+	}
+	const bullet = "• "
+	textW := components.DisplayWidth(bullet) + components.DisplayWidth(p.hint)
+	if textW > bounds.Width {
+		return
+	}
+	x := bounds.Left + (bounds.Width-textW)/2
+	th := styles.Current()
+	components.DrawText(s, x, y, bullet, th.Base().Foreground(th.AccentDim).Background(th.Background))
+	components.DrawText(s, x+components.DisplayWidth(bullet), y, p.hint, th.Base().Foreground(th.Muted).Background(th.Background))
 }
 
 func Fill(s tcell.Screen, bounds layout.Region, th styles.Theme) {
