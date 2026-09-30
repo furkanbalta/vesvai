@@ -158,6 +158,12 @@ nav:
       - Files: sdk/files.md
       - Extending: sdk/extending.md
       - Events & Errors: sdk/events-errors.md
+  - Vesvabot:
+      - Overview: vesvabot/index.md
+      - Configuration: vesvabot/configuration.md
+      - Workflows: vesvabot/workflows.md
+      - Prompts: vesvabot/prompts.md
+      - GitHub Tools: vesvabot/github-tools.md
   - Plugin:
       - Overview: plugin/index.md
       - Quickstart: plugin/quickstart.md
