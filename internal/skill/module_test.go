@@ -70,3 +70,26 @@ func TestSkillModule(t *testing.T) {
 		t.Fatalf("SkillModule must be idempotent: %v", err)
 	}
 }
+
+func TestSkillifyMaterializesAndLoads(t *testing.T) {
+	root := t.TempDir()
+	if err := MaterializeTo(root); err != nil {
+		t.Fatal(err)
+	}
+	if err := LoadDirs(root); err != nil {
+		t.Fatal(err)
+	}
+	s, ok := Get("skillify")
+	if !ok {
+		t.Fatal("skillify must be registered after materialization")
+	}
+	if s.Description == "" || s.WhenToUse == "" {
+		t.Fatalf("skillify metadata incomplete: %+v", s)
+	}
+	if !strings.Contains(s.Instructions, ".vesvai/skills/") {
+		t.Error("skillify instructions should reference .vesvai/skills/")
+	}
+	if strings.Contains(s.Instructions, ".claude") {
+		t.Error("skillify instructions should not reference .claude")
+	}
+}
