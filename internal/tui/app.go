@@ -33,6 +33,7 @@ const (
 	blinkInterval   = 450 * time.Millisecond
 	renderInterval  = 16 * time.Millisecond
 	doubleEscWindow = 2 * time.Second
+	fullRepaintFreq = 1 * time.Second
 )
 
 type App struct {
@@ -323,6 +324,7 @@ func (a *App) loop() error {
 	}()
 
 	lastBlink := time.Now()
+	lastFullRepaint := time.Now()
 
 	for {
 		ev := a.screen.PollEvent()
@@ -366,6 +368,11 @@ func (a *App) loop() error {
 				}
 				lastBlink = now
 				a.redrawPending.Store(true)
+			}
+			if now.Sub(lastFullRepaint) >= fullRepaintFreq {
+				a.screen.Clear()
+				a.redrawPending.Store(true)
+				lastFullRepaint = now
 			}
 			if a.redrawPending.Swap(false) {
 				a.draw()
