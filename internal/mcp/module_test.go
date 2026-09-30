@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -102,13 +103,13 @@ func TestMergeServersProjectOverridesGlobal(t *testing.T) {
 }
 
 func TestNewTransportSelection(t *testing.T) {
-	if _, err := NewTransport(config.MCPServerConfig{URL: "https://x/sse"}); err != nil {
+	if _, err := NewTransport(config.MCPServerConfig{URL: "https://x/sse"}, io.Discard); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := NewTransport(config.MCPServerConfig{Command: "cat"}); err != nil {
+	if _, err := NewTransport(config.MCPServerConfig{Command: "cat"}, io.Discard); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := NewTransport(config.MCPServerConfig{}); err != ErrUnsupported {
+	if _, err := NewTransport(config.MCPServerConfig{}, io.Discard); err != ErrUnsupported {
 		t.Fatalf("err = %v, want ErrUnsupported", err)
 	}
 }

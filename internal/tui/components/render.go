@@ -51,6 +51,21 @@ func DisplayWidth(text string) int {
 	return w
 }
 
+func truncateToDisplayWidth(s string, max int) string {
+	if max <= 0 {
+		return ""
+	}
+	w := 0
+	for i, r := range s {
+		rw := cellWidth(r)
+		if w+rw > max {
+			return s[:i]
+		}
+		w += rw
+	}
+	return s
+}
+
 func cellWidth(r rune) int {
 	switch {
 	case r == '\t':

@@ -26,6 +26,7 @@ type StdioOptions struct {
 	Args    []string
 	Env     map[string]string
 	Dir     string
+	Stderr  io.Writer
 }
 
 func NewStdioTransport(opts StdioOptions) (*StdioTransport, error) {
@@ -68,7 +69,11 @@ func NewStdioTransport(opts StdioOptions) (*StdioTransport, error) {
 	if err != nil {
 		return nil, fmt.Errorf("mcp: stdio stdout pipe: %w", err)
 	}
-	cmd.Stderr = os.Stderr
+	stderr := opts.Stderr
+	if stderr == nil {
+		stderr = io.Discard
+	}
+	cmd.Stderr = stderr
 
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("mcp: start stdio process: %w", err)
