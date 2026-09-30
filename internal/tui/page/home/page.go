@@ -212,6 +212,9 @@ func (p *Page) HandleKey(ev *tcell.EventKey) bool {
 		return p.input.HandleKey(ev)
 	}
 	if ev.Key() == tcell.KeyEsc {
+		if p.chat.HasBack() && p.chat.HandleKey(ev) {
+			return true
+		}
 		if p.focus == focusChat {
 			if p.chat.HandleKey(ev) {
 				return true

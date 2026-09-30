@@ -58,6 +58,21 @@ func TestHomeDrawManyLines(t *testing.T) {
 	}
 }
 
+func TestHomeEscLeavesSubagentViewRegardlessOfFocus(t *testing.T) {
+	p := New()
+	p.Chat().SetItems([]*components.ChatItem{{Kind: components.ItemUser, Text: "task"}})
+	p.Chat().SetBack(true)
+	back := false
+	p.Chat().SetOnBack(func() { back = true })
+
+	if !p.HandleKey(tcell.NewEventKey(tcell.KeyEsc, 0, 0)) {
+		t.Fatal("Esc should be handled")
+	}
+	if !back {
+		t.Fatal("Esc should navigate back from the subagent view")
+	}
+}
+
 func drawScreen(t *testing.T, w, h int) tcell.Screen {
 	t.Helper()
 	s := tcell.NewSimulationScreen("UTF-8")
