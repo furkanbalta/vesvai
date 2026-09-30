@@ -58,6 +58,24 @@ Keep rules short, concrete, and actionable. A rule file can contain any Markdown
 - Do not commit changes unless explicitly asked.
 ```
 
+## Creating rules with the agent
+
+The built-in `/rule` skill lets you create or update rules through a conversation
+instead of editing files by hand:
+
+- **Explicit content** — tell Vesvai the rule and it writes it, e.g.
+  `"/rule: never commit .env files"`.
+- **Unknown content** — if you don't say what the rule should be, the agent asks
+  you with the `askuserquestion` tool.
+- **Agent-proposed** — you can also ask Vesvai to draft a rule from the
+  conversation (e.g. `"/rule: save a rule based on our conversation"`); it scans
+  for preferences and corrections you repeated and presents candidates for your
+  approval before writing anything.
+
+The agent picks the scope: project rules default to `<project>/.vesvai/rules/`,
+global rules to `~/.vesvai/rules/`, and it asks when the scope is unclear. New
+rules are injected into subsequent conversations without a restart.
+
 ## Rules vs. AGENTS.md
 
 Vesvai reads `AGENTS.md` from the current working directory and injects it as
@@ -76,4 +94,4 @@ The `/init` skill generates an `AGENTS.md` for you. See
 
 Open Settings with ++ctrl+p++ and switch to the **Rules** tab. It lists every loaded
 rule file with a `global` or `project` label. The list is read-only; edit the files
-directly and restart Vesvai to pick up changes.
+directly, or use the `/rule` skill, to change them.

@@ -6,8 +6,8 @@ icon: lucide/square-terminal
 
 Vesvai's slash commands are implemented as **skills**: type `/name` in the input
 and Vesvai issues a `loadskill` tool call, so the skill's instructions arrive as a
-tool result (or run as a background subagent for `context: fork` skills). Three
-commands are built in — `/init`, `/batch`, and `/review` — and you can
+tool result (or run as a background subagent for `context: fork` skills). Four
+commands are built in — `/init`, `/batch`, `/review`, and `/rule` — and you can
 [add your own](../configurations/skills.md#creating-your-own) with a `SKILL.md` file.
 
 In the TUI, type `/` to open the picker and filter by name. The same token works in
@@ -93,6 +93,13 @@ The review pipeline:
 5. **Sweep for gaps** — look for issues the hunk-by-hunk review might have missed
    (security, tests, docs).
 6. **Report** — produce inline review comments on the VCS, or a Markdown report.
+
+## `/rule`
+
+Creates or updates a rule file under `<project>/.vesvai/rules/` (project scope) or
+`~/.vesvai/rules/` (global scope). See
+[Rules](../configurations/rules.md#creating-rules-with-the-agent) for the full
+workflow.
 
 ## Other commands
 
