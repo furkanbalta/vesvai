@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestStdioSpawnFailure(t *testing.T) {
@@ -52,6 +53,28 @@ func TestStdioCloseKillsProcess(t *testing.T) {
 	if err := tr.Write([]byte(`{}`)); err == nil {
 		t.Fatal("expected write after close to fail")
 	}
+}
+
+func TestStdioStderrGoesToWriter(t *testing.T) {
+	var stderr bytes.Buffer
+	tr, err := NewStdioTransport(StdioOptions{
+		Command: "sh",
+		Args:    []string{"-c", "echo server-noise 1>&2; sleep 0.2"},
+		Stderr:  &stderr,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tr.Close()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if strings.Contains(stderr.String(), "server-noise") {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("stderr writer did not receive server output, got %q", stderr.String())
 }
 
 func TestFrameDecoderContentLength(t *testing.T) {

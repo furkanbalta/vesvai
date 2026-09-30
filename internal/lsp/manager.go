@@ -229,6 +229,7 @@ func (m *Manager) startServer(srv *Server, path string) {
 		Args:    srv.cfg.Args,
 		Env:     srv.cfg.Env,
 		Dir:     root,
+		Stderr:  m.log.Writer(logger.LevelDebug, "lsp["+srv.name+"]: "),
 	})
 	if err != nil {
 		m.markFailed(srv, err)

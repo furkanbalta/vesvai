@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"io"
 	"sync"
 	"time"
 
@@ -38,7 +39,7 @@ func (m *Manager) connect(name string, cfg config.MCPServerConfig) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	transport, err := NewTransport(cfg)
+	transport, err := NewTransport(cfg, m.log.Writer(logger.LevelDebug, "mcp["+name+"]: "))
 	if err != nil {
 		m.log.Fwarn("mcp: server %q: %v", name, err)
 		return
@@ -130,7 +131,7 @@ func (m *Manager) Close() error {
 	return nil
 }
 
-func NewTransport(cfg config.MCPServerConfig) (Duplex, error) {
+func NewTransport(cfg config.MCPServerConfig, stderr io.Writer) (Duplex, error) {
 	if cfg.URL != "" {
 		return NewSSETransport(SSEOptions{
 			URL:     cfg.URL,
@@ -142,6 +143,7 @@ func NewTransport(cfg config.MCPServerConfig) (Duplex, error) {
 			Command: cfg.Command,
 			Args:    cfg.Args,
 			Env:     cfg.Env,
+			Stderr:  stderr,
 		})
 	}
 	return nil, ErrUnsupported
