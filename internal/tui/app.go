@@ -415,16 +415,19 @@ func (a *App) handleKey(ev *tcell.EventKey) bool {
 	kev := tcell.NewEventKey(ke.Key, ke.Rune, ke.Mod)
 
 	if kev.Key() == tcell.KeyEsc {
-		if a.running {
-			if !a.lastEsc.IsZero() && time.Since(a.lastEsc) < doubleEscWindow {
-				if a.agentCancel != nil {
-					a.agentCancel()
-				}
-				a.chatMu.Lock()
-				a.clearEscHint()
-				a.chatMu.Unlock()
-				return true
+		if a.escHandledLocally() || !a.running {
+			a.chatMu.Lock()
+			a.clearEscHint()
+			a.chatMu.Unlock()
+		} else if !a.lastEsc.IsZero() && time.Since(a.lastEsc) < doubleEscWindow {
+			if a.agentCancel != nil {
+				a.agentCancel()
 			}
+			a.chatMu.Lock()
+			a.clearEscHint()
+			a.chatMu.Unlock()
+			return true
+		} else {
 			a.lastEsc = time.Now()
 			a.escHint = true
 			a.escTimer = time.AfterFunc(doubleEscWindow, func() {
@@ -432,13 +435,6 @@ func (a *App) handleKey(ev *tcell.EventKey) bool {
 				a.clearEscHint()
 				a.chatMu.Unlock()
 			})
-		} else {
-			a.lastEsc = time.Time{}
-			a.escHint = false
-			if a.escTimer != nil {
-				a.escTimer.Stop()
-				a.escTimer = nil
-			}
 		}
 	}
 
@@ -568,6 +564,13 @@ func (a *App) openSettings() {
 	})
 	s.SetRequestRedraw(func() { a.requestRedraw() })
 	a.setOverlay(s)
+}
+
+func (a *App) escHandledLocally() bool {
+	if a.getOverlay() != nil {
+		return true
+	}
+	return a.chat != nil && a.chat.HasBack()
 }
 
 func (a *App) clearEscHint() {

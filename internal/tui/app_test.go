@@ -14,6 +14,7 @@ import (
 	"github.com/vesvai/vesvai/internal/core/logger"
 	"github.com/vesvai/vesvai/internal/llm"
 	"github.com/vesvai/vesvai/internal/session"
+	"github.com/vesvai/vesvai/internal/tui/components"
 	"github.com/vesvai/vesvai/internal/tui/page/home"
 	"github.com/vesvai/vesvai/internal/tui/page/settings"
 	"github.com/vesvai/vesvai/internal/tui/styles"
@@ -134,6 +135,42 @@ func TestAppSettingsModelPickUpdatesApp(t *testing.T) {
 	}
 	if a.model.provider != "tui-mock2" || a.model.model.ID != "m-a" {
 		t.Errorf("app model after pick = %+v, want tui-mock2/m-a", a.model)
+	}
+}
+
+func TestAppEscWhileRunningArmsInterrupt(t *testing.T) {
+	s := newTestScreen(t)
+	a := &App{screen: s, chat: components.NewChat(), running: true}
+	t.Cleanup(a.clearEscHint)
+
+	a.handleKey(tcell.NewEventKey(tcell.KeyEsc, 0, 0))
+
+	if !a.escHint || a.lastEsc.IsZero() {
+		t.Fatalf("Esc while running should arm the interrupt: hint=%v lastEsc=%v", a.escHint, a.lastEsc)
+	}
+}
+
+func TestAppEscWithOverlayDoesNotArmInterrupt(t *testing.T) {
+	s := newTestScreen(t)
+	a := &App{screen: s, chat: components.NewChat(), running: true}
+	a.setOverlay(components.NewChat())
+
+	a.handleKey(tcell.NewEventKey(tcell.KeyEsc, 0, 0))
+
+	if a.escHint || !a.lastEsc.IsZero() {
+		t.Fatalf("Esc with an overlay open must not arm the interrupt: hint=%v lastEsc=%v", a.escHint, a.lastEsc)
+	}
+}
+
+func TestAppEscInSubagentViewDoesNotArmInterrupt(t *testing.T) {
+	s := newTestScreen(t)
+	a := &App{screen: s, chat: components.NewChat(), running: true}
+	a.chat.SetBack(true)
+
+	a.handleKey(tcell.NewEventKey(tcell.KeyEsc, 0, 0))
+
+	if a.escHint || !a.lastEsc.IsZero() {
+		t.Fatalf("Esc in a subagent transcript must not arm the interrupt: hint=%v lastEsc=%v", a.escHint, a.lastEsc)
 	}
 }
 
