@@ -62,6 +62,27 @@ func TestResolveProviderDriver(t *testing.T) {
 	}
 }
 
+func TestResolveProviderCustomNamed(t *testing.T) {
+	RegisterDriver("customdrv", func(cfg config.LLMConfig) (Provider, error) {
+		return &namedMockProvider{name: cfg.Provider}, nil
+	})
+
+	p, err := resolveProvider(config.LLMConfig{Provider: "my-gateway", Driver: "customdrv"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Name() != "my-gateway" {
+		t.Fatalf("Name = %q, want my-gateway", p.Name())
+	}
+}
+
+func TestResolveProviderCustomNamedUnknownDriver(t *testing.T) {
+	_, err := resolveProvider(config.LLMConfig{Provider: "my-gateway", Driver: "nope"})
+	if err == nil || !strings.Contains(err.Error(), "no driver registered") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestRegisterDriverEmpty(t *testing.T) {
 	RegisterDriver("", func(config.LLMConfig) (Provider, error) {
 		return &namedMockProvider{name: "x"}, nil

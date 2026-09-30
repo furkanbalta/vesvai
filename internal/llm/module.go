@@ -58,16 +58,38 @@ func HasProvider(name string) bool {
 	return ok
 }
 
+func ListDrivers() []string {
+	driversMu.RLock()
+	defer driversMu.RUnlock()
+
+	names := make([]string, 0, len(drivers))
+	for name := range drivers {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+func HasDriver(name string) bool {
+	driversMu.RLock()
+	defer driversMu.RUnlock()
+
+	_, ok := drivers[name]
+	return ok
+}
+
 func resolveProvider(cfg config.LLMConfig) (Provider, error) {
 	if cfg.Provider != "" {
 		providersMu.RLock()
 		factory, ok := providers[cfg.Provider]
 		providersMu.RUnlock()
 
-		if !ok {
+		if ok {
+			return factory(cfg)
+		}
+		if cfg.Driver == "" {
 			return nil, fmt.Errorf("llm: no provider registered for %q", cfg.Provider)
 		}
-		return factory(cfg)
 	}
 
 	if cfg.Driver != "" {

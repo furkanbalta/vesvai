@@ -79,6 +79,31 @@ The provider is synced first — Vesvai fetches its model list and only saves th
 provider if that succeeds (35 second timeout). This guarantees a freshly added
 provider has usable models immediately.
 
+### CLI with full options
+
+`vesvai providers add` exposes every config field (driver, base_url, headers,
+timeout, max_retries):
+
+```bash
+vesvai providers add --name groq --api-key gsk_...
+vesvai providers add --driver openai --base-url http://localhost:11434/v1 --api-key ollama --timeout 120
+```
+
+Registered names use built-in endpoints; `base_url`/`driver` are ignored for
+them. For custom endpoints, use a bare driver entry or combine a custom name
+with a driver:
+
+```bash
+vesvai providers add --driver openai --base-url http://localhost:11434/v1 --api-key ollama --timeout 120
+vesvai providers add --name my-gw --driver openai --base-url http://localhost:11434/v1 --api-key ollama
+```
+
+`providers add` runs without prompts when any of `--name`, `--driver`, or
+`--base-url` is given; headers default to empty and the API key may be left
+empty. With no flags it starts the interactive picker, which also offers a
+"Custom endpoint" option. Models are fetched in the background after saving —
+a failed fetch does not block the add, run `vesvai providers refresh` to retry.
+
 ### TUI
 
 Open Settings with `Ctrl+P` → **General** → **Provider**. Existing providers show
@@ -121,9 +146,16 @@ named provider. `base_url` is required for drivers:
 The same works for `"driver": "claude"` and `"driver": "gemini"` endpoints that
 implement those wire protocols.
 
+The same entry can be added from the CLI:
+
+```bash
+vesvai providers add --driver openai --base-url http://localhost:11434/v1 --api-key ollama
+```
+
 ## Managing providers
 
 ```bash
+vesvai providers add --name anthropic --api-key [**REDACTED**] # add or replace a provider
 vesvai providers list                    # name, masked key, cached model count
 vesvai providers refresh                 # re-fetch models for every provider
 vesvai providers refresh --provider xai  # re-fetch one provider
