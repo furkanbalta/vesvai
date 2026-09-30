@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	agentmw "github.com/vesvai/vesvai/internal/agent/middleware"
 	"github.com/vesvai/vesvai/internal/llm"
 )
 
@@ -18,14 +17,14 @@ func TestRedactionBeforeLLMRedactsAllMessages(t *testing.T) {
 			Role:    llm.RoleAssistant,
 			Content: "ok",
 			ToolCalls: []llm.ToolCall{
-				{Function: llm.Function{Arguments: `{"secret":"sk-abcdefghijklmnopqrstuvwxyz1234"}`}},
+				{Function: llm.Function{Arguments: `{"content":"apiKey := k.apiKey()"}`}},
 			},
 		},
 	})
 	if err := r.BeforeLLM(t.Context(), req); err != nil {
 		t.Fatal(err)
 	}
-	for i, m := range req.Messages {
+	for i, m := range req.Messages[:3] {
 		s, _ := m.Content.(string)
 		if strings.Contains(s, "sk-abcdefghijklmnopqrstuvwxyz1234") {
 			t.Errorf("message %d content not redacted: %q", i, s)
@@ -37,49 +36,12 @@ func TestRedactionBeforeLLMRedactsAllMessages(t *testing.T) {
 			t.Errorf("message %d content not redacted: %q", i, s)
 		}
 	}
+	if s, _ := req.Messages[3].Content.(string); s != "ok" {
+		t.Errorf("assistant content must survive redaction, got %q", s)
+	}
 	args := req.Messages[3].ToolCalls[0].Function.Arguments
-	if strings.Contains(args, "sk-abcdefghijklmnopqrstuvwxyz1234") {
-		t.Error("tool-call args not redacted at request boundary")
-	}
-}
-
-func TestRedactionAfterLLMPreservesToolCalls(t *testing.T) {
-	r := NewRedaction()
-	msg := &llm.Message{
-		Content: "echo sk-abcdefghijklmnopqrstuvwxyz1234",
-		ToolCalls: []llm.ToolCall{
-			{Function: llm.Function{Arguments: `{"content":"sk-abcdefghijklmnopqrstuvwxyz1234"}`}},
-		},
-	}
-	resp := &llm.Response{Choices: []llm.Choice{{Message: msg}}}
-	if err := r.AfterLLM(t.Context(), nil, resp); err != nil {
-		t.Fatal(err)
-	}
-	if strings.Contains(msg.Content.(string), "sk-abcdefghijklmnopqrstuvwxyz1234") {
-		t.Error("content not redacted in output")
-	}
-	if !strings.Contains(msg.ToolCalls[0].Function.Arguments, "sk-abcdefghijklmnopqrstuvwxyz1234") {
-		t.Error("tool-call args must survive AfterLLM for execution")
-	}
-}
-
-func TestRedactionAfterRun(t *testing.T) {
-	r := NewRedaction()
-	res := &agentmw.Result{
-		Output: "token sk-abcdefghijklmnopqrstuvwxyz1234",
-		History: []llm.Message{
-			llm.ToolMessage(`{"api_key":"sk-abcdefghijklmnopqrstuvwxyz1234"}`, "c1"),
-		},
-	}
-	if err := r.AfterRun(t.Context(), "a", res, nil); err != nil {
-		t.Fatal(err)
-	}
-	if strings.Contains(res.Output, "sk-abcdefghijklmnopqrstuvwxyz1234") {
-		t.Error("result output not redacted")
-	}
-	h := res.History[0].Content.(string)
-	if strings.Contains(h, "sk-abcdefghijklmnopqrstuvwxyz1234") {
-		t.Error("history not redacted")
+	if args != `{"content":"apiKey := k.apiKey()"}` {
+		t.Errorf("assistant tool-call args must survive redaction, got %q", args)
 	}
 }
 
@@ -93,12 +55,6 @@ func TestRedactionRedactString(t *testing.T) {
 func TestRedactionNilSafe(t *testing.T) {
 	r := NewRedaction()
 	if err := r.BeforeLLM(t.Context(), nil); err != nil {
-		t.Fatal(err)
-	}
-	if err := r.AfterLLM(t.Context(), nil, nil); err != nil {
-		t.Fatal(err)
-	}
-	if err := r.AfterRun(t.Context(), "a", nil, nil); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -123,13 +79,6 @@ func TestRedactionBeforeLLMSkipsMediaContentParts(t *testing.T) {
 	url := parts[1].(map[string]any)["image_url"].(map[string]any)["url"].(string)
 	if strings.Contains(url, "[**REDACTED**]") {
 		t.Errorf("image url payload must not be redacted: %q", url)
-	}
-}
-
-func TestRedactionAfterRunNilResult(t *testing.T) {
-	r := NewRedaction()
-	if err := r.AfterRun(t.Context(), "a", nil, nil); err != nil {
-		t.Fatal(err)
 	}
 }
 

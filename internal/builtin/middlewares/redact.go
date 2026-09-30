@@ -9,13 +9,11 @@ import (
 
 type Redaction struct {
 	agentmw.BaseMiddleware
-	red           *redactor
-	outputEnabled bool
+	red *redactor
 }
 
 func NewRedaction(opts ...RedactionOption) *Redaction {
-	red := newRedactor(opts...)
-	return &Redaction{red: red, outputEnabled: true}
+	return &Redaction{red: newRedactor(opts...)}
 }
 
 func (r *Redaction) RedactString(s string) string {
@@ -27,30 +25,10 @@ func (r *Redaction) BeforeLLM(_ context.Context, req *llm.Request) error {
 		return nil
 	}
 	for i := range req.Messages {
-		r.red.redactMessage(&req.Messages[i], true)
-	}
-	return nil
-}
-
-func (r *Redaction) AfterLLM(_ context.Context, _ *llm.Request, resp *llm.Response) error {
-	if resp == nil || !r.outputEnabled {
-		return nil
-	}
-	for i := range resp.Choices {
-		if resp.Choices[i].Message != nil {
-			r.red.redactMessage(resp.Choices[i].Message, false)
+		if req.Messages[i].Role == llm.RoleAssistant {
+			continue
 		}
-	}
-	return nil
-}
-
-func (r *Redaction) AfterRun(_ context.Context, _ string, result *agentmw.Result, _ error) error {
-	if result == nil || !r.outputEnabled {
-		return nil
-	}
-	result.Output = r.red.Redact(result.Output)
-	for i := range result.History {
-		r.red.redactMessage(&result.History[i], true)
+		r.red.redactMessage(&req.Messages[i], false)
 	}
 	return nil
 }
