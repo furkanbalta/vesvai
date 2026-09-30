@@ -54,10 +54,11 @@ root â€” absolute paths outside the workspace, `..` traversal, symlink escapes â
 with an out-of-bounds error. `.gitignore` and `.vesvaignore` rules hide ignored
 files.
 
-The project's `.vesvai/` directory is readable by all agents (sessions, todos, plan
-files), but only `.vesvai/plans/` is writable; other `.vesvai` paths return an
-ignored error on write. The planner agent is additionally write-scoped to
-`.vesvai/plans/` and the explorer is read-only.
+The project's `.vesvai/` directory is readable by all agents (sessions, todos,
+plan and rule files), but only `.vesvai/plans/` and `.vesvai/rules/` are
+writable; other `.vesvai` paths return an ignored error on write. The planner
+agent is additionally write-scoped to `.vesvai/plans/` and the explorer is
+read-only.
 
 For `semi-ask` / `semi-judge`, the tool runs first: if it succeeds, no prompt or
 judge is involved. Only an out-of-bounds result triggers the gate. After the user or

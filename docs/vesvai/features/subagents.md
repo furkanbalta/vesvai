@@ -14,7 +14,7 @@ prompt, and middleware, and runs **concurrently** with its siblings.
 |---|---|---|---|
 | `orchestrator` | Top-level coordinator | Full workspace | All file tools, `askuserquestion`, `bash`, `task`, `taskstatus`, `todoread`, `todowrite`, `webfetch`, `websearch`, `loadskill`, `enterplanmode`, `exitplanmode` |
 | `planner` | Architecture and planning | `.vesvai/plans/` only | File tools write-scoped to plans, `bash`, `webfetch`, `websearch`, `todoread`, `todowrite` |
-| `developer` | Implementation | Full workspace except `.vesvai/plans/` | All file tools, `bash`, `webfetch`, `websearch`, `todoread`, `todowrite` |
+| `developer` | Implementation | Full workspace except `.vesvai/` config (`.vesvai/plans/` and `.vesvai/rules/` remain writable) | All file tools, `bash`, `webfetch`, `websearch`, `todoread`, `todowrite` |
 | `explorer` | Read-only research | None | `glob`, `grep`, `list`, `read`, `bash`, `webfetch`, `websearch` |
 
 The **planner** always runs in plan mode: the plan-mode system reminder is attached
