@@ -744,7 +744,7 @@ func TestWriteScopeIgnoresGitignoreInsideScope(t *testing.T) {
 	}
 }
 
-func TestVesvaiReadableButOnlyPlansWritable(t *testing.T) {
+func TestVesvaiReadableButOnlyPlansAndRulesWritable(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte(".vesvai/\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -778,14 +778,23 @@ func TestVesvaiReadableButOnlyPlansWritable(t *testing.T) {
 		t.Fatalf("read plans = %q, want spec content", data)
 	}
 
+	if _, err := fs.Write(".vesvai/rules/01-testing.md", []byte("# Testing\n")); err != nil {
+		t.Fatalf("write into rules: %v", err)
+	}
+	if data, err := fs.Read(".vesvai/rules/01-testing.md"); err != nil {
+		t.Fatalf("read rules: %v", err)
+	} else if !strings.Contains(data, "# Testing") {
+		t.Fatalf("read rules = %q, want rule content", data)
+	}
+
 	if _, err := fs.Write(".vesvai/permissions.json", []byte("{}")); !errors.Is(err, ErrIgnored) {
-		t.Fatalf("write outside plans: got %v, want ErrIgnored", err)
+		t.Fatalf("write outside plans/rules: got %v, want ErrIgnored", err)
 	}
 	if _, err := fs.Edit(".vesvai/permissions.json", "allowed", "denied", false); !errors.Is(err, ErrIgnored) {
-		t.Fatalf("edit outside plans: got %v, want ErrIgnored", err)
+		t.Fatalf("edit outside plans/rules: got %v, want ErrIgnored", err)
 	}
 	if err := fs.Delete(".vesvai/permissions.json"); !errors.Is(err, ErrIgnored) {
-		t.Fatalf("delete outside plans: got %v, want ErrIgnored", err)
+		t.Fatalf("delete outside plans/rules: got %v, want ErrIgnored", err)
 	}
 }
 

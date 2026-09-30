@@ -9,5 +9,6 @@ func All() map[string]func() *prompt.Prompt {
 		"batch":  BatchSkill,
 		"review": ReviewSkill,
 		"init":   InitSkill,
+		"rule":   RuleSkill,
 	}
 }

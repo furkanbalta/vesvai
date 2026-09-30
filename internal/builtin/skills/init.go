@@ -8,7 +8,9 @@ func InitSkill() *prompt.Prompt {
 	return prompt.New().
 		Hr(3).
 		Paragraph("name: init").
-		Paragraph("description: Instructs the /init command to analyze a codebase and create or improve a AGENTS.md file. Use this command to when user requested to create or improve a AGENTS.md file.").
+		Paragraph("description: Instructs the /init command to analyze a codebase and create or improve a AGENTS.md file.").
+		Paragraph("when_to_use: Use when user requested to create or improve a AGENTS.md file.").
+		Paragraph("context: inline").
 		Hr(3).
 		Paragraph("").
 		Paragraph("Analyze this codebase and create a AGENTS.md file, which will be given to future instances of Vesvai to operate in this repository.").

@@ -259,7 +259,7 @@ func (v *VFS) writeIgnored(rel string, isDir bool) bool {
 	if wo := v.writeOnlyRel(); wo != "" && rel != wo && !strings.HasPrefix(rel, wo+"/") {
 		return true
 	}
-	if isVesvaiPath(rel) && !isPlansPath(rel) {
+	if isVesvaiPath(rel) && !isPlansPath(rel) && !isRulesPath(rel) {
 		return true
 	}
 	return v.ignorer.Ignored(rel, isDir)

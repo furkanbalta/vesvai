@@ -59,7 +59,7 @@ If both define the same skill name, `~/.vesvai/skills/` wins. Only immediate
 subdirectories are scanned, and each must contain a parseable `SKILL.md`; invalid
 skills are skipped silently.
 
-The three built-in skills are **materialized** into `~/.vesvai/skills/` on first
+The four built-in skills are **materialized** into `~/.vesvai/skills/` on first
 run. Existing directories are never overwritten, so you can edit the built-ins in
 place.
 
@@ -121,6 +121,11 @@ skills mentioned in a task.
 
     Run a structured pull-request review through explorer, developer, and verifier
     phases.
+
+- [:lucide-shield:{ .lg } **`/rule`**](../features/commands.md#rule)
+
+    Create or update a rule file under `.vesvai/rules/` (project) or
+    `~/.vesvai/rules/` (global), asking you for the content when not specified.
 
 </div>
 

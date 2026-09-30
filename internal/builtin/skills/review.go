@@ -8,7 +8,9 @@ func ReviewSkill() *prompt.Prompt {
 	return prompt.New().
 		Hr(3).
 		Paragraph("name: review").
-		Paragraph("description: Instructs the /review command to analyze a codebase review prompt and provide feedback on the code quality, potential issues, and suggestions for improvement. Use this command when you want to review a pull request.").
+		Paragraph("description: Instructs the /review command to analyze a codebase review prompt and provide feedback on the code quality, potential issues, and suggestions for improvement.").
+		Paragraph("when_to_use: Use this command when you want to review a pull request.").
+		Paragraph("context: inline").
 		Hr(3).
 		Paragraph("").
 		Paragraph("You are the **Lead Orchestrator Agent** for an advanced, multi-agent Pull Request (PR) Code Review System. Your objective is to manage a pipeline of specialized sub-agents to deliver a highly accurate, zero-hallucination, and deeply analytical code review. You will coordinate the flow of context, state, and findings across all phases.").
