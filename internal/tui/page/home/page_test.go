@@ -6,6 +6,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 
+	"github.com/vesvai/vesvai/internal/llm"
 	"github.com/vesvai/vesvai/internal/tui/components"
 	"github.com/vesvai/vesvai/internal/tui/layout"
 	"github.com/vesvai/vesvai/internal/tui/styles"
@@ -82,6 +83,105 @@ func drawScreen(t *testing.T, w, h int) tcell.Screen {
 	t.Cleanup(s.Fini)
 	s.SetSize(w, h)
 	return s
+}
+
+func screenText(s tcell.Screen, w, h int) string {
+	var b strings.Builder
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			r, _, _, _ := s.GetContent(x, y)
+			b.WriteRune(r)
+		}
+		b.WriteByte('\n')
+	}
+	return b.String()
+}
+
+func TestHomeShowsSingleHintAboveInput(t *testing.T) {
+	styles.RegisterDefaults()
+	styles.Set("dark")
+	p := New()
+	p.hint = "use '@' to mention files, folders, or agents"
+	s := drawScreen(t, 100, 30)
+	p.Draw(s, layout.Region{Left: 0, Top: 0, Width: 100, Height: 30}, true)
+
+	rows := strings.Split(screenText(s, 100, 30), "\n")
+	hintRow, inputTop := -1, -1
+	for i, r := range rows {
+		if strings.Contains(r, "• use '@' to mention files, folders, or agents") {
+			hintRow = i
+		}
+		if inputTop < 0 && strings.Contains(r, "┌") {
+			inputTop = i
+		}
+	}
+	if hintRow < 0 {
+		t.Fatalf("hint not found in:\n%s", strings.Join(rows, "\n"))
+	}
+	if inputTop < 0 {
+		t.Fatal("input box not found")
+	}
+	if hintRow != inputTop-1 {
+		t.Fatalf("hint row = %d, want %d (directly above the input)", hintRow, inputTop-1)
+	}
+}
+
+func TestHomeHidesHintWithAttachments(t *testing.T) {
+	styles.RegisterDefaults()
+	styles.Set("dark")
+	p := New()
+	p.hint = "use '@' to mention files, folders, or agents"
+	p.AttachmentBar().Add(llm.Attachment{Type: llm.AttachmentTypeFile, FileName: "main.go"})
+	s := drawScreen(t, 100, 30)
+	p.Draw(s, layout.Region{Left: 0, Top: 0, Width: 100, Height: 30}, true)
+
+	if strings.Contains(screenText(s, 100, 30), "to mention files") {
+		t.Fatal("hint should be hidden when attachments are present")
+	}
+}
+
+func TestHomeHidesHintWhileTyping(t *testing.T) {
+	styles.RegisterDefaults()
+	styles.Set("dark")
+	p := New()
+	p.hint = "use '@' to mention files, folders, or agents"
+	p.Input().InsertRune('h')
+	s := drawScreen(t, 100, 30)
+	p.Draw(s, layout.Region{Left: 0, Top: 0, Width: 100, Height: 30}, true)
+
+	if strings.Contains(screenText(s, 100, 30), "to mention files") {
+		t.Fatal("hint should be hidden while the input is not empty")
+	}
+}
+
+func TestHomeHidesHintWhenChatHasContent(t *testing.T) {
+	styles.RegisterDefaults()
+	styles.Set("dark")
+	p := New()
+	p.hint = "use '@' to mention files, folders, or agents"
+	p.Chat().SetItems([]*components.ChatItem{{Kind: components.ItemUser, Text: "hi"}})
+	s := drawScreen(t, 100, 30)
+	p.Draw(s, layout.Region{Left: 0, Top: 0, Width: 100, Height: 30}, true)
+
+	if strings.Contains(screenText(s, 100, 30), "to mention files") {
+		t.Fatal("hint should not be shown once the chat has content")
+	}
+}
+
+func TestRandomHintIsFromPool(t *testing.T) {
+	for i := 0; i < 50; i++ {
+		h := randomHint()
+		found := false
+		for _, want := range defaultHints {
+			if h == want {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("randomHint returned %q which is not in the pool", h)
+		}
+	}
 }
 
 func TestHomeDrawWithSelection(t *testing.T) {
