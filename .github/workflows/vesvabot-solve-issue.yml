@@ -20,7 +20,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run vesvabot
-        uses: vesvabot/vesvabot@v0.1
+        uses: vesvai/vesvabot@v0.1
         with:
           mode: solve-issue
           token: ${{ secrets.GITHUB_TOKEN }}

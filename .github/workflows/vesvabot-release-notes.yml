@@ -18,7 +18,7 @@ jobs:
           fetch-tags: true
 
       - name: Run vesvabot
-        uses: vesvabot/vesvabot@v0.1
+        uses: vesvai/vesvabot@v0.1
         with:
           mode: release-notes
           token: ${{ secrets.GITHUB_TOKEN }}
