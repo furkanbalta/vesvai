@@ -434,11 +434,11 @@ func TestReplaceSkillReplacesSlashQuery(t *testing.T) {
 		t.Fatalf("SlashQuery = (%v, %q), want (true, go)", active, query)
 	}
 	in.ReplaceSkill("go-development")
-	if got := in.Value(); got != "/go-development" {
-		t.Errorf("Value = %q, want /go-development", got)
+	if got := in.Value(); got != "/go-development " {
+		t.Errorf("Value = %q, want '/go-development '", got)
 	}
-	if in.Col() != 1 {
-		t.Errorf("col = %d, want 1", in.Col())
+	if in.Col() != 2 {
+		t.Errorf("col = %d, want 2 (after chip + auto space)", in.Col())
 	}
 }
 
@@ -489,12 +489,15 @@ func TestReplaceSkillMidSentence(t *testing.T) {
 		in.InsertRune(r)
 	}
 	in.ReplaceSkill("go-development")
-	if got := in.Value(); got != "do this /go-development" {
-		t.Errorf("Value = %q, want 'do this /go-development'", got)
+	if got := in.Value(); got != "do this /go-development " {
+		t.Errorf("Value = %q, want 'do this /go-development '", got)
+	}
+	if in.Col() != len([]rune("do this "))+2 {
+		t.Errorf("col = %d, want %d (after chip + auto space)", in.Col(), len([]rune("do this "))+2)
 	}
 }
 
-func TestReplaceSkillKeepsTextAfterToken(t *testing.T) {
+func TestReplaceSkillMidSentenceDoesNotDoubleSpace(t *testing.T) {
 	in := NewInput()
 	for _, r := range []rune("do /go and more") {
 		in.InsertRune(r)
@@ -502,6 +505,43 @@ func TestReplaceSkillKeepsTextAfterToken(t *testing.T) {
 	in.ReplaceSkill("go-development")
 	if got := in.Value(); got != "do /go-development and more" {
 		t.Errorf("Value = %q, want 'do /go-development and more'", got)
+	}
+	if in.Col() != 4 {
+		t.Errorf("col = %d, want 4 (after chip, before existing space)", in.Col())
+	}
+}
+
+func TestReplaceMentionMidSentenceDoesNotDoubleSpace(t *testing.T) {
+	in := NewInput()
+	for _, r := range []rune("ask @dev to help") {
+		in.InsertRune(r)
+	}
+	in.ReplaceMention("developer")
+	if got := in.Value(); got != "ask @developer to help" {
+		t.Errorf("Value = %q, want 'ask @developer to help'", got)
+	}
+	if in.Col() != 5 {
+		t.Errorf("col = %d, want 5 (after chip, before existing space)", in.Col())
+	}
+}
+
+func TestSkillChipVisualWidthMatchesDraw(t *testing.T) {
+	in := NewInput()
+	in.InsertChip("go-development")
+	got := in.visualLineWidth("/go-development")
+	want := len("/go-development") // drawn as "/"+name
+	if got != want {
+		t.Errorf("visualLineWidth = %d, want %d (drawn width)", got, want)
+	}
+}
+
+func TestMentionChipVisualWidthMatchesDraw(t *testing.T) {
+	in := NewInput()
+	in.InsertMention("developer")
+	got := in.visualLineWidth("@developer")
+	want := len("@developer")
+	if got != want {
+		t.Errorf("visualLineWidth = %d, want %d (drawn width)", got, want)
 	}
 }
 
@@ -546,8 +586,11 @@ func TestReplaceMentionReplacesAtQuery(t *testing.T) {
 		t.Fatalf("setup: Value = %q, want @dev", v)
 	}
 	in.ReplaceMention("developer")
-	if got := in.Value(); got != "@developer" {
-		t.Errorf("Value = %q, want @developer", got)
+	if got := in.Value(); got != "@developer " {
+		t.Errorf("Value = %q, want '@developer '", got)
+	}
+	if in.Col() != 2 {
+		t.Errorf("col = %d, want 2 (after chip + auto space)", in.Col())
 	}
 }
 

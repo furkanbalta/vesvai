@@ -225,8 +225,11 @@ func TestHomeSkillPickerFlow(t *testing.T) {
 	if p.PickOpen() {
 		t.Error("picker should close after selection")
 	}
-	if got := p.Input().Value(); got != "/go-development" {
-		t.Errorf("Value = %q, want /go-development (chip)", got)
+	if got := p.Input().Value(); got != "/go-development " {
+		t.Errorf("Value = %q, want '/go-development ' (chip + auto space)", got)
+	}
+	if p.Input().Col() != 2 {
+		t.Errorf("col = %d, want 2 (after chip + space)", p.Input().Col())
 	}
 }
 
@@ -311,8 +314,8 @@ func TestHomeSkillPickerMidSentence(t *testing.T) {
 	if p.PickOpen() {
 		t.Error("picker should close after selection")
 	}
-	if got := p.Input().Value(); got != "fix it /go-development" {
-		t.Errorf("Value = %q, want 'fix it /go-development'", got)
+	if got := p.Input().Value(); got != "fix it /go-development " {
+		t.Errorf("Value = %q, want 'fix it /go-development ' (auto space at EOL)", got)
 	}
 }
 
@@ -430,8 +433,11 @@ func TestHomeMentionPickerFlow(t *testing.T) {
 	if p.PickOpen() {
 		t.Error("picker should close after selection")
 	}
-	if got := p.Input().Value(); got != "@developer" {
-		t.Errorf("Value = %q, want @developer (mention chip)", got)
+	if got := p.Input().Value(); got != "@developer " {
+		t.Errorf("Value = %q, want '@developer ' (mention chip + auto space)", got)
+	}
+	if p.Input().Col() != 2 {
+		t.Errorf("col = %d, want 2 (after chip + space)", p.Input().Col())
 	}
 }
 
@@ -558,7 +564,7 @@ func TestHomeMentionPickerMidSentence(t *testing.T) {
 	if p.PickOpen() {
 		t.Error("picker should close after selection")
 	}
-	if got := p.Input().Value(); got != "ask @developer" {
-		t.Errorf("Value = %q, want 'ask @developer'", got)
+	if got := p.Input().Value(); got != "ask @developer " {
+		t.Errorf("Value = %q, want 'ask @developer ' (auto space at EOL)", got)
 	}
 }
