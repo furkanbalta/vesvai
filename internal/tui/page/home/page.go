@@ -78,6 +78,7 @@ var defaultHints = []string{
 	"use '/' to run a skill",
 	"use '/init' to create an AGENTS.md for this project",
 	"use '/rule' to save a rule Vesvai always follows",
+	"use '/skillify' to turn this session into a reusable skill",
 	"use '/review' to review a pull request",
 	"use '/batch' to change many files at once",
 	"press Ctrl+P for settings",

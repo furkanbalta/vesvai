@@ -133,6 +133,44 @@ func TestAccessAppliesToReadsAndWrites(t *testing.T) {
 	}
 }
 
+func TestGlobalVesvaiPathsAreWritable(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	fs := newTestFS(t)
+
+	cfg := filepath.Join(home, ".vesvai", "vesvai.json")
+	if _, err := fs.Write(cfg, []byte(`{"theme":"dark"}`)); err != nil {
+		t.Fatalf("write global config: %v", err)
+	}
+	if data, err := os.ReadFile(cfg); err != nil || string(data) != `{"theme":"dark"}` {
+		t.Fatalf("global config = %q, err = %v", data, err)
+	}
+
+	skill := filepath.Join(home, ".vesvai", "skills", "demo", "SKILL.md")
+	if _, err := fs.Write(skill, []byte("# demo\n")); err != nil {
+		t.Fatalf("write global skill: %v", err)
+	}
+	if _, err := os.Stat(skill); err != nil {
+		t.Fatalf("global skill not written: %v", err)
+	}
+}
+
+func TestGlobalVesvaiOtherPathsStayDenied(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	fs := newTestFS(t)
+
+	for _, p := range []string{
+		filepath.Join(home, ".vesvai", "secrets.env"),
+		filepath.Join(home, ".vesvai", "skills-other", "x"),
+		filepath.Join(home, "elsewhere", "file"),
+	} {
+		if _, err := fs.Write(p, []byte("x")); !errors.Is(err, ErrOutOfBounds) {
+			t.Fatalf("write %q: want ErrOutOfBounds, got %v", p, err)
+		}
+	}
+}
+
 func TestAccessWriteOpIsPassed(t *testing.T) {
 	fs := newTestFS(t)
 	scoped, err := fs.WriteScope("sub")

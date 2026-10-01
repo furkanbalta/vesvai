@@ -43,6 +43,10 @@ func (v *VFS) OnAccessCheck(fn func(AccessRequest, AccessVerdict) AccessVerdict)
 
 func (v *VFS) checkAccess(req AccessRequest) AccessVerdict {
 	seed := AccessVerdict{Allow: false, Path: req.Path, Err: v.outOfBounds(req.Path)}
+	if isGlobalWritable(req.Path) {
+		seed.Allow = true
+		seed.Err = nil
+	}
 	res := v.hooks.access.Apply(accessCheck{Request: req, Verdict: seed})
 	verdict := res.Verdict
 	if !verdict.Allow && verdict.Err == nil {
