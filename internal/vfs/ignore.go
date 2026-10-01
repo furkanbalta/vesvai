@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/vesvai/vesvai/internal/core/config"
 )
 
 const ignoreFileGit = ".gitignore"
@@ -16,6 +18,23 @@ const (
 	PlansDir  = vesvaiDir + "/plans"
 	RulesDir  = vesvaiDir + "/rules"
 )
+
+func isGlobalWritable(abs string) bool {
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" {
+		return false
+	}
+	if resolved, err := filepath.EvalSymlinks(home); err == nil {
+		home = resolved
+	}
+	base := filepath.Join(home, config.GlobalConfigDirName)
+	clean := filepath.Clean(abs)
+	if clean == filepath.Join(base, config.GlobalConfigFileName) {
+		return true
+	}
+	skills := filepath.Join(base, "skills")
+	return clean == skills || strings.HasPrefix(clean, skills+string(filepath.Separator))
+}
 
 func isVesvaiPath(rel string) bool {
 	return rel == vesvaiDir || strings.HasPrefix(rel, vesvaiDir+"/")
