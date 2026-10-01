@@ -330,3 +330,44 @@ func BenchmarkFilter(b *testing.B) {
 		})
 	}
 }
+
+func TestFilterRanksLabelMatchesFirst(t *testing.T) {
+	items := []testItem{
+		{label: "other", detail: "this description mentions rule"},
+		{label: "rule", detail: "create a rule"},
+		{label: "readme", detail: "docs"},
+	}
+	got := Filter("rule", items, func(i testItem) []string { return []string{i.label, i.detail} })
+	if len(got) == 0 || got[0].label != "rule" {
+		t.Fatalf("expected label 'rule' first, got %+v", got)
+	}
+}
+
+func TestFilterExactPathFirst(t *testing.T) {
+	paths := []testItem{
+		{label: "internal/tui/components/chat_test.go"},
+		{label: "internal/tui/components/chat.go"},
+		{label: "internal/tui/app.go"},
+		{label: "internal/vfs/vfs.go"},
+	}
+	got := Filter("chat.go", paths, func(i testItem) []string { return []string{i.label} })
+	if len(got) == 0 || got[0].label != "internal/tui/components/chat.go" {
+		t.Fatalf("expected exact path first, got %+v", got)
+	}
+}
+
+func TestFilterSkillNames(t *testing.T) {
+	items := []testItem{
+		{label: "batch", detail: "orchestrate a large parallelizable change"},
+		{label: "init", detail: "analyze a codebase and create AGENTS.md"},
+		{label: "review", detail: "review a pull request"},
+		{label: "rule", detail: "create or update a rule file"},
+		{label: "skillify", detail: "turn the current session into a reusable skill"},
+	}
+	for _, name := range []string{"init", "rule", "review", "batch", "skillify"} {
+		got := Filter(name, items, func(i testItem) []string { return []string{i.label, i.detail} })
+		if len(got) == 0 || got[0].label != name {
+			t.Errorf("query %q: expected %q first, got %+v", name, name, got)
+		}
+	}
+}

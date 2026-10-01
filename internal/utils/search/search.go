@@ -62,15 +62,45 @@ func Filter[T any](query string, items []T, getFields func(T) []string) []T {
 		return out
 	}
 	q := strings.ToLower(query)
-	out := make([]T, 0, len(items))
+
+	type entry struct {
+		item  T
+		tier  int
+		score int
+	}
+	entries := make([]entry, 0, len(items))
 	for _, item := range items {
-		fields := getFields(item)
-		for _, field := range fields {
-			if m := findBestMatch(q, field); m != nil {
-				out = append(out, item)
-				break
+		primary, secondary := -1, -1
+		for i, field := range getFields(item) {
+			m := findBestMatch(q, field)
+			if m == nil {
+				continue
+			}
+			if i == 0 {
+				if m.Score > primary {
+					primary = m.Score
+				}
+			} else if m.Score > secondary {
+				secondary = m.Score
 			}
 		}
+		switch {
+		case primary >= 0:
+			entries = append(entries, entry{item: item, tier: 0, score: primary})
+		case secondary >= 0:
+			entries = append(entries, entry{item: item, tier: 1, score: secondary})
+		}
+	}
+	sort.SliceStable(entries, func(i, j int) bool {
+		if entries[i].tier != entries[j].tier {
+			return entries[i].tier < entries[j].tier
+		}
+		return entries[i].score > entries[j].score
+	})
+
+	out := make([]T, len(entries))
+	for i, e := range entries {
+		out[i] = e.item
 	}
 	return out
 }
