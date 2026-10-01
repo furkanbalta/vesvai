@@ -68,19 +68,14 @@ func (l *List) SelectedIndex() int {
 }
 
 func (l *List) rebuild() {
-	q := string(l.filter)
-	l.filtered = l.filtered[:0]
-	if q == "" {
-		for i := range l.all {
-			l.filtered = append(l.filtered, i)
-		}
-	} else {
-		for i, it := range l.all {
-			if search.Score(q, it.Label) >= 0 || search.Score(q, it.Detail) >= 0 {
-				l.filtered = append(l.filtered, i)
-			}
-		}
+	idxs := make([]int, len(l.all))
+	for i := range idxs {
+		idxs[i] = i
 	}
+	filtered := search.Filter(string(l.filter), idxs, func(i int) []string {
+		return []string{l.all[i].Label, l.all[i].Detail}
+	})
+	l.filtered = append(l.filtered[:0], filtered...)
 	if l.index >= len(l.filtered) {
 		l.index = 0
 	}
