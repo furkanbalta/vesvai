@@ -124,6 +124,7 @@ func (s *Settings) providerValue() string {
 
 func (s *Settings) openProviders() {
 	l := components.NewList("Select provider")
+	l.SetSearchable(true)
 	var items []components.ListItem
 	for _, name := range llm.ListProviders() {
 		detail, marked := "not configured", false
@@ -141,7 +142,7 @@ func (s *Settings) openProviders() {
 			s.openAPIKey(name)
 		}
 	})
-	s.openSub(&listModal{title: "Providers", list: l, onBack: s.back})
+	s.openSub(&listModal{title: "Providers (type to search)", list: l, onBack: s.back})
 }
 
 func (s *Settings) openProviderChoice(name string) {
