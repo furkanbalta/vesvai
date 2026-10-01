@@ -17,6 +17,7 @@ const (
 	vesvaiDir = ".vesvai"
 	PlansDir  = vesvaiDir + "/plans"
 	RulesDir  = vesvaiDir + "/rules"
+	SkillsDir = vesvaiDir + "/skills"
 )
 
 func isGlobalWritable(abs string) bool {
@@ -46,6 +47,10 @@ func isPlansPath(rel string) bool {
 
 func isRulesPath(rel string) bool {
 	return rel == RulesDir || strings.HasPrefix(rel, RulesDir+"/")
+}
+
+func isSkillsPath(rel string) bool {
+	return rel == SkillsDir || strings.HasPrefix(rel, SkillsDir+"/")
 }
 
 type pattern struct {
