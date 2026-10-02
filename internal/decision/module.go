@@ -14,6 +14,9 @@ type ProviderFactory func(cfg config.LLMConfig) (Provider, error)
 var (
 	providersMu sync.RWMutex
 	providers   = make(map[string]ProviderFactory)
+
+	defaultModelsMu sync.RWMutex
+	defaultModels   = make(map[string]string)
 )
 
 func RegisterProvider(name string, factory ProviderFactory) {
@@ -23,6 +26,21 @@ func RegisterProvider(name string, factory ProviderFactory) {
 	providersMu.Lock()
 	defer providersMu.Unlock()
 	providers[name] = factory
+}
+
+func RegisterDefaultModel(name, model string) {
+	if name == "" || model == "" {
+		return
+	}
+	defaultModelsMu.Lock()
+	defer defaultModelsMu.Unlock()
+	defaultModels[name] = model
+}
+
+func DefaultModel(name string) string {
+	defaultModelsMu.RLock()
+	defer defaultModelsMu.RUnlock()
+	return defaultModels[name]
 }
 
 func ListProviders() []string {

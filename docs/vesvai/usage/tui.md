@@ -228,8 +228,22 @@ chain holds the compacted view plus everything said afterwards.
 
 The Permissions tab has its own internal navigation. When focused on the tab bar,
 ++left++/++right++ switches tabs. Press ++down++ to enter the presets, ++down++ again
-to reach the tool list. In the tool list, ++left++/++right++ cycles the permission
+to reach the **Judge model** row, ++down++ again for the **Threshold** row, and
+++down++ a fourth time to reach the tool list.
+In the tool list, ++left++/++right++ cycles the permission
 mode for the selected tool. ++up++ from presets returns to the tab bar.
+
+Press ++enter++ on the **Judge model** row to pick which model judges tool calls.
+The picker lists **decision models** first (JEV via OpenRouter, marked with the
+provider and a `decision` suffix), then every available LLM model across your
+configured providers. Selecting one writes `judge_provider` / `judge_model` to
+`~/.vesvai/vesvai.json`; choosing a decision model also enables the decision judge
+by default. See [Permissions](../features/permissions.md#the-judge-flow).
+
+The **Threshold** row adjusts the decision judge's minimum yes-probability
+(`judge_threshold`): ++left++/++right++ step it by `0.05`, clamped between `0.05`
+and `1.0`, and the value is saved immediately. The row is disabled (and labeled
+*decision only*) when the judge provider is not decision-capable.
 
 ### System tab
 
