@@ -4,6 +4,9 @@ const (
 	TopicAppMounted  = "app.mounted"
 	TopicAppShutdown = "app.shutdown"
 
+	TopicAppFocused = "app.focused"
+	TopicAppBlurred = "app.blurred"
+
 	TopicProviderAdded   = "provider.added"
 	TopicProviderRemoved = "provider.removed"
 

@@ -261,6 +261,9 @@ Settings → General → Theme. The choice is saved to the `theme` key in
 - **Errors** — appended to the transcript or shown on the hint line.
 - **Transient messages** — retry progress (`Request failed ... retrying in Xs`) and
   the Esc interrupt hint appear above the status bar.
+- **Desktop notifications** — permission prompts, agent completions, and agent
+  errors raise an OS notification while the window is in the background. See
+  [Notifications](../features/notifications.md).
 
 ## Session behavior
 

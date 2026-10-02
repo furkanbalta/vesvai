@@ -97,6 +97,9 @@ Allow the "bash" tool call?
 
 Dismissing the prompt denies the call. The `askuserquestion` tool is exempt from all gating.
 
+When the Vesvai window is in the background, a permission prompt also raises a
+desktop notification — see [Notifications](notifications.md).
+
 ## The judge flow
 
 In `judge` / `semi-judge` mode a dedicated **judge agent** reviews the tool call

@@ -68,6 +68,16 @@ Either `provider` or `driver` must be set.
 |---|---|---|---|
 | `driver` | string | `"sqlite"` | `"sqlite"` uses `~/.vesvai/sessions.db`; `"json"` stores one file per session under `~/.vesvai/sessions/` |
 
+### `notification`
+
+Desktop notifications while the app is in the background. See
+[Notifications](features/notifications.md).
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `drivers` | string[] | `["os"]` | Drivers that receive every notification. `"os"` sends desktop notifications via the system notification service |
+| `enabled` | bool | `true` | Master toggle. When `false`, no notification driver is created |
+
 ### `server`
 
 Used by `vesvai serve`. See [HTTP](usage/http.md) and [ACP](usage/acp.md).
