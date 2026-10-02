@@ -100,7 +100,7 @@ func TestAskJudgeDecisionDeniesBelowThreshold(t *testing.T) {
 	prov := &judgeDecisionProvider{
 		name: "dec-prov",
 		decide: func(_ context.Context, _ *decisionapi.Request) (*decisionapi.Response, error) {
-			return noulResponse(0.7), nil
+			return noulResponse(0.5), nil
 		},
 	}
 	m := &Middleware{
@@ -113,9 +113,9 @@ func TestAskJudgeDecisionDeniesBelowThreshold(t *testing.T) {
 		t.Fatal(err)
 	}
 	if dec.Allow {
-		t.Fatal("expected decision judge to deny below default threshold 0.8")
+		t.Fatal("expected decision judge to deny below default threshold")
 	}
-	if !strings.Contains(dec.Reason, "0.70") {
+	if !strings.Contains(dec.Reason, "0.50") {
 		t.Errorf("reason = %q", dec.Reason)
 	}
 }
@@ -336,11 +336,11 @@ func TestAskJudgeFallsBackToLLMWithoutDecisionManager(t *testing.T) {
 }
 
 func TestJudgeThresholdDefault(t *testing.T) {
-	if got := (&config.PermissionConfig{}).JudgeThresholdValue(); got != 0.8 {
-		t.Fatalf("default threshold = %v, want 0.8", got)
+	if got := (&config.PermissionConfig{}).JudgeThresholdValue(); got != config.DefaultJudgeThreshold {
+		t.Fatalf("default threshold = %v, want %v", got, config.DefaultJudgeThreshold)
 	}
-	if got := (*config.PermissionConfig)(nil).JudgeThresholdValue(); got != 0.8 {
-		t.Fatalf("nil threshold = %v, want 0.8", got)
+	if got := (*config.PermissionConfig)(nil).JudgeThresholdValue(); got != config.DefaultJudgeThreshold {
+		t.Fatalf("nil threshold = %v, want %v", got, config.DefaultJudgeThreshold)
 	}
 	thr := 0.5
 	if got := (&config.PermissionConfig{JudgeThreshold: &thr}).JudgeThresholdValue(); got != 0.5 {

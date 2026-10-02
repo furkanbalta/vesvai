@@ -138,25 +138,8 @@ func buildJudgePrompt(call llm.ToolCall, permErr error, history []llm.Message) (
 }
 
 func formatHistory(msgs []llm.Message) string {
-	start := 0
-	seen := 0
-	for i := len(msgs) - 1; i >= 0; i-- {
-		m := msgs[i]
-		if m.Role == llm.RoleUser || (m.Role == llm.RoleAssistant && !emptyBlock(m)) {
-			seen++
-			if seen == judgeHistoryMax {
-				start = i
-				break
-			}
-		}
-	}
-	if seen == 0 {
-		return ""
-	}
-
 	var b strings.Builder
-	for i := start; i < len(msgs); i++ {
-		m := msgs[i]
+	for _, m := range msgs {
 		if m.Role != llm.RoleUser && m.Role != llm.RoleAssistant && m.Role != llm.RoleTool {
 			continue
 		}
@@ -203,7 +186,11 @@ func renderContextMessage(m llm.Message) string {
 		}
 		return strings.Join(lines, "\n")
 	case llm.RoleTool:
-		return "tool: " + llm.MessageText(m)
+		text := llm.MessageText(m)
+		if !strings.HasPrefix(text, "Error:") {
+			return ""
+		}
+		return "tool error: " + strings.TrimPrefix(text, "Error: ")
 	}
 	return ""
 }
