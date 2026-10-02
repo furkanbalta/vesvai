@@ -64,10 +64,20 @@ type ServerConfig struct {
 }
 
 type PermissionConfig struct {
-	Default       string            `json:"default"`
-	JudgeProvider string            `json:"judge_provider,omitempty"`
-	JudgeModel    string            `json:"judge_model,omitempty"`
-	Rules         map[string]string `json:"rules,omitempty"`
+	Default        string            `json:"default"`
+	JudgeProvider  string            `json:"judge_provider,omitempty"`
+	JudgeModel     string            `json:"judge_model,omitempty"`
+	JudgeThreshold *float64          `json:"judge_threshold,omitempty"`
+	Rules          map[string]string `json:"rules,omitempty"`
+}
+
+const DefaultJudgeThreshold = 0.6
+
+func (p *PermissionConfig) JudgeThresholdValue() float64 {
+	if p == nil || p.JudgeThreshold == nil {
+		return DefaultJudgeThreshold
+	}
+	return *p.JudgeThreshold
 }
 
 type PluginConfig struct {

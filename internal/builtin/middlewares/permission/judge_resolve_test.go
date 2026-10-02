@@ -111,7 +111,7 @@ func TestResolveJudgeUnavailable(t *testing.T) {
 	}
 }
 
-func TestResolveJudgeMissingModel(t *testing.T) {
+func TestResolveJudgeMissingModelFallsBackToPreferred(t *testing.T) {
 	mgr, bus := newJudgeTestManager(t)
 	syncJudgeProvider(t, mgr, bus, "judge-prov", []llm.Model{{ID: "other"}})
 
@@ -119,8 +119,12 @@ func TestResolveJudgeMissingModel(t *testing.T) {
 		JudgeProvider: "judge-prov",
 		JudgeModel:    "missing-model",
 	}}
-	if _, _, ok := m.resolveJudge(); ok {
-		t.Fatal("expected resolution to fail for a missing model")
+	prov, model, ok := m.resolveJudge()
+	if !ok {
+		t.Fatal("expected fallback to the preferred model when the exact judge model is unavailable")
+	}
+	if prov.Name() != "judge-prov" || model.ID != "other" {
+		t.Fatalf("provider = %q model = %q, want judge-prov/other", prov.Name(), model.ID)
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"github.com/vesvai/vesvai/internal/builtin/middlewares/compaction"
 	"github.com/vesvai/vesvai/internal/builtin/middlewares/permission"
 	"github.com/vesvai/vesvai/internal/core/config"
+	"github.com/vesvai/vesvai/internal/decision"
 	"github.com/vesvai/vesvai/internal/llm"
 	"github.com/vesvai/vesvai/internal/session"
 	"github.com/vesvai/vesvai/internal/vfs"
@@ -13,6 +14,7 @@ import (
 type Deps struct {
 	Config   *config.Config
 	LLM      *llm.Manager
+	Decision *decision.Manager
 	Sessions *session.Manager
 }
 
@@ -25,8 +27,9 @@ func Create(fs *vfs.VFS, deps Deps) {
 		permCfg = deps.Config.Permission
 	}
 	perm := permission.New(permission.Deps{
-		Config: permCfg,
-		LLM:    deps.LLM,
+		Config:   permCfg,
+		LLM:      deps.LLM,
+		Decision: deps.Decision,
 	})
 	middlewares.Register("permission", perm)
 	if fs != nil {
