@@ -21,6 +21,7 @@ const (
 
 func init() {
 	decision.RegisterProvider(ProviderName, NewFromConfig)
+	decision.RegisterDefaultModel(ProviderName, DefaultModel)
 }
 
 type Service struct {

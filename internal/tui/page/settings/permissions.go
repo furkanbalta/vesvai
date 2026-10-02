@@ -2,6 +2,7 @@ package settings
 
 import (
 	"fmt"
+	"math"
 	"sort"
 
 	"github.com/gdamore/tcell/v2"
@@ -10,6 +11,7 @@ import (
 	"github.com/vesvai/vesvai/internal/agent/tools"
 	"github.com/vesvai/vesvai/internal/builtin/middlewares/permission"
 	"github.com/vesvai/vesvai/internal/core/config"
+	"github.com/vesvai/vesvai/internal/decision"
 	"github.com/vesvai/vesvai/internal/tui/components"
 	"github.com/vesvai/vesvai/internal/tui/layout"
 	"github.com/vesvai/vesvai/internal/tui/styles"
@@ -57,12 +59,19 @@ type permFocus int
 
 const (
 	permFocusPresets permFocus = iota
+	permFocusModel
+	permFocusThreshold
 	permFocusTools
 )
 
 type toolPerm struct {
 	name string
 	mode string
+}
+
+type judgePick struct {
+	provider string
+	model    string
 }
 
 type permissionsTab struct {
@@ -73,6 +82,10 @@ type permissionsTab struct {
 	tools     []toolPerm
 	presetIdx int
 	loaded    bool
+
+	judgeProvider  string
+	judgeModel     string
+	judgeThreshold float64
 }
 
 func newPermissions(s *Settings) *permissionsTab {
@@ -85,9 +98,24 @@ func (t *permissionsTab) loadIfNeeded() {
 	}
 	t.loaded = true
 	t.loadTools()
+	t.loadJudge()
 	t.presetIdx = int(t.detectPreset())
 	t.toolIdx = 0
 	t.scroll = 0
+}
+
+func (t *permissionsTab) loadJudge() {
+	t.judgeProvider, t.judgeModel = "", ""
+	t.judgeThreshold = config.DefaultJudgeThreshold
+	if t.settings.deps.Config != nil && t.settings.deps.Config.Permission != nil {
+		t.judgeProvider = t.settings.deps.Config.Permission.JudgeProvider
+		t.judgeModel = t.settings.deps.Config.Permission.JudgeModel
+		t.judgeThreshold = t.settings.deps.Config.Permission.JudgeThresholdValue()
+	}
+}
+
+func (t *permissionsTab) decisionEnabled() bool {
+	return t.judgeProvider != "" && decision.HasProvider(t.judgeProvider)
 }
 
 func (t *permissionsTab) HandleKey(ev *tcell.EventKey) bool {
@@ -99,15 +127,23 @@ func (t *permissionsTab) HandleKey(ev *tcell.EventKey) bool {
 			if t.toolIdx > 0 {
 				t.toolIdx--
 			} else {
-				t.focus = permFocusPresets
+				t.focus = permFocusThreshold
 			}
-		} else if t.focus == permFocusPresets {
+		} else if t.focus == permFocusThreshold {
+			t.focus = permFocusModel
+		} else if t.focus == permFocusModel {
+			t.focus = permFocusPresets
+		} else {
 			return false
 		}
 		return true
 
 	case tcell.KeyDown:
 		if t.focus == permFocusPresets {
+			t.focus = permFocusModel
+		} else if t.focus == permFocusModel {
+			t.focus = permFocusThreshold
+		} else if t.focus == permFocusThreshold {
 			t.focus = permFocusTools
 		} else {
 			if t.toolIdx < len(t.tools)-1 {
@@ -116,10 +152,21 @@ func (t *permissionsTab) HandleKey(ev *tcell.EventKey) bool {
 		}
 		return true
 
+	case tcell.KeyEnter:
+		if t.focus == permFocusModel {
+			t.openJudgeModels()
+			return true
+		}
+		return false
+
 	case tcell.KeyLeft:
 		if t.focus == permFocusPresets {
 			t.presetIdx = (t.presetIdx - 1 + len(presetNames)) % len(presetNames)
 			t.applyPreset(permPreset(t.presetIdx))
+		} else if t.focus == permFocusThreshold {
+			if t.decisionEnabled() {
+				t.adjustThreshold(-0.05)
+			}
 		} else {
 			if t.toolIdx >= 0 && t.toolIdx < len(t.tools) {
 				t.cycleMode(t.toolIdx)
@@ -131,6 +178,10 @@ func (t *permissionsTab) HandleKey(ev *tcell.EventKey) bool {
 		if t.focus == permFocusPresets {
 			t.presetIdx = (t.presetIdx + 1) % len(presetNames)
 			t.applyPreset(permPreset(t.presetIdx))
+		} else if t.focus == permFocusThreshold {
+			if t.decisionEnabled() {
+				t.adjustThreshold(0.05)
+			}
 		} else {
 			if t.toolIdx >= 0 && t.toolIdx < len(t.tools) {
 				t.cycleModeRev(t.toolIdx)
@@ -168,6 +219,10 @@ func (t *permissionsTab) HandleKey(ev *tcell.EventKey) bool {
 			if t.focus == permFocusPresets {
 				t.presetIdx = (t.presetIdx - 1 + len(presetNames)) % len(presetNames)
 				t.applyPreset(permPreset(t.presetIdx))
+			} else if t.focus == permFocusThreshold {
+				if t.decisionEnabled() {
+					t.adjustThreshold(-0.05)
+				}
 			} else if t.toolIdx >= 0 && t.toolIdx < len(t.tools) {
 				t.cycleMode(t.toolIdx)
 			}
@@ -176,6 +231,10 @@ func (t *permissionsTab) HandleKey(ev *tcell.EventKey) bool {
 			if t.focus == permFocusPresets {
 				t.presetIdx = (t.presetIdx + 1) % len(presetNames)
 				t.applyPreset(permPreset(t.presetIdx))
+			} else if t.focus == permFocusThreshold {
+				if t.decisionEnabled() {
+					t.adjustThreshold(0.05)
+				}
 			} else if t.toolIdx >= 0 && t.toolIdx < len(t.tools) {
 				t.cycleModeRev(t.toolIdx)
 			}
@@ -206,7 +265,34 @@ func (t *permissionsTab) Draw(screen tcell.Screen, bounds layout.Region, focused
 	arrowRight := " ►"
 	components.DrawText(screen, bounds.Right()-4, presetY, arrowRight, presetStyle)
 
-	sepY := presetY + 1
+	modelY := presetY + 1
+	modelFocused := focused && t.focus == permFocusModel
+	modelStyle := th.Base().Foreground(th.Accent).Background(th.InputBg)
+	if modelFocused {
+		modelStyle = th.Base().Foreground(th.InputText).Background(th.Selection)
+	}
+	components.DrawText(screen, bounds.Left+2, modelY, "Judge model", modelStyle)
+	judgeVal := t.judgeDisplay()
+	components.DrawText(screen, bounds.Right()-len(judgeVal)-3, modelY, judgeVal, modelStyle)
+
+	thresholdY := modelY + 1
+	decEnabled := t.decisionEnabled()
+	thresholdFocused := focused && t.focus == permFocusThreshold
+	thresholdStyle := th.Base().Foreground(th.Accent).Background(th.InputBg)
+	if thresholdFocused && decEnabled {
+		thresholdStyle = th.Base().Foreground(th.InputText).Background(th.Selection)
+	} else if !decEnabled {
+		thresholdStyle = th.Base().Foreground(th.Placeholder).Background(th.InputBg)
+	}
+	label := "Threshold"
+	if !decEnabled {
+		label += " (decision only)"
+	}
+	components.DrawText(screen, bounds.Left+2, thresholdY, label, thresholdStyle)
+	thrVal := t.thresholdDisplay()
+	components.DrawText(screen, bounds.Right()-len(thrVal)-3, thresholdY, thrVal, thresholdStyle)
+
+	sepY := thresholdY + 1
 	sepStyle := th.Base().Foreground(th.Muted).Background(th.InputBg)
 	for x := bounds.Left + 1; x < bounds.Right()-1; x++ {
 		screen.SetContent(x, sepY, '─', nil, sepStyle)
@@ -379,19 +465,187 @@ func (t *permissionsTab) cycleModeRev(idx int) {
 	t.applyLive()
 }
 
+func (t *permissionsTab) judgeDisplay() string {
+	if t.judgeProvider == "" {
+		return "—"
+	}
+	if t.judgeModel != "" {
+		return t.judgeProvider + "/" + t.judgeModel
+	}
+	return t.judgeProvider + " (default)"
+}
+
+func (t *permissionsTab) thresholdDisplay() string {
+	return fmt.Sprintf("%.2f", t.judgeThreshold)
+}
+
+func (t *permissionsTab) adjustThreshold(delta float64) {
+	next := math.Round((t.judgeThreshold+delta)*100) / 100
+	if next < 0.05 {
+		next = 0.05
+	}
+	if next > 1 {
+		next = 1
+	}
+	t.judgeThreshold = next
+	t.saveThreshold()
+}
+
+func (t *permissionsTab) saveThreshold() {
+	cfg, err := config.Load()
+	if err != nil {
+		return
+	}
+	perm := cfg.Permission
+	if perm == nil {
+		perm = &config.PermissionConfig{}
+	}
+	thr := t.judgeThreshold
+	perm.JudgeThreshold = &thr
+	cfg.Permission = perm
+	_ = config.Save(cfg)
+	if m, ok := middlewares.Get("permission"); ok {
+		if p, ok := m.(*permission.Middleware); ok {
+			p.UpdateConfig(perm)
+		}
+	}
+	t.settings.deps.Config = cfg
+}
+
+func (t *permissionsTab) openJudgeModels() {
+	l := components.NewList("Select judge model")
+	l.SetSearchable(true)
+
+	var items []components.ListItem
+	var decisionItems []components.ListItem
+	if t.settings.deps.Config != nil {
+		for _, p := range t.settings.deps.Config.Providers {
+			if p.APIKey == "" || !decision.HasProvider(p.Provider) {
+				continue
+			}
+			model := decision.DefaultModel(p.Provider)
+			if model == "" {
+				model = "default"
+			}
+			marked := t.judgeProvider == p.Provider &&
+				(t.judgeModel == model || (t.judgeModel == "" && model == decision.DefaultModel(p.Provider)))
+			decisionItems = append(decisionItems, components.ListItem{
+				Label:  model,
+				Detail: p.Provider + " · decision",
+				Marked: marked,
+				Data:   judgePick{provider: p.Provider, model: model},
+			})
+			if t.judgeProvider == p.Provider && t.judgeModel != "" && t.judgeModel != model {
+				decisionItems = append(decisionItems, components.ListItem{
+					Label:  t.judgeModel,
+					Detail: p.Provider + " · decision",
+					Marked: true,
+					Data:   judgePick{provider: p.Provider, model: t.judgeModel},
+				})
+			}
+		}
+	}
+
+	var llmItems []components.ListItem
+	if t.settings.deps.LLM != nil && t.settings.deps.Config != nil {
+		for _, p := range t.settings.deps.Config.Providers {
+			models, err := t.settings.deps.LLM.Models(p.Provider)
+			if err != nil {
+				continue
+			}
+			for _, m := range models {
+				label := m.ID
+				if m.Name != "" {
+					label = m.Name
+				}
+				llmItems = append(llmItems, components.ListItem{
+					Label:  label,
+					Detail: p.Provider,
+					Marked: t.judgeProvider == p.Provider && t.judgeModel == m.ID,
+					Data:   judgePick{provider: p.Provider, model: m.ID},
+				})
+			}
+		}
+	}
+
+	if len(decisionItems) > 0 {
+		items = append(items, components.ListItem{Label: "Decisions", Disabled: true})
+		items = append(items, decisionItems...)
+	}
+	if len(llmItems) > 0 {
+		items = append(items, components.ListItem{Label: "LLM models", Disabled: true})
+		items = append(items, llmItems...)
+	}
+	if len(items) == 0 {
+		items = append(items, components.ListItem{Label: "(no models available)"})
+	}
+
+	l.SetItems(items)
+	l.SetOnSelect(func(_ int, item components.ListItem) {
+		if item.Disabled {
+			return
+		}
+		if pick, ok := item.Data.(judgePick); ok {
+			t.setJudgeModel(pick.provider, pick.model)
+			return
+		}
+		t.settings.back()
+	})
+	t.settings.openSub(&listModal{title: "Judge Model", list: l, onBack: t.settings.back})
+}
+
+func (t *permissionsTab) setJudgeModel(provider, model string) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.settings.errMsg = "failed to load config: " + err.Error()
+		t.settings.back()
+		return
+	}
+	perm := cfg.Permission
+	if perm == nil {
+		perm = config.DefaultConfig().Permission
+	}
+	perm.JudgeProvider = provider
+	perm.JudgeModel = model
+	cfg.Permission = perm
+	if err := config.Save(cfg); err != nil {
+		t.settings.errMsg = "failed to save config: " + err.Error()
+		t.settings.back()
+		return
+	}
+	t.settings.errMsg = ""
+	t.settings.deps.Config = cfg
+	t.judgeProvider = provider
+	t.judgeModel = model
+	if m, ok := middlewares.Get("permission"); ok {
+		if p, ok := m.(*permission.Middleware); ok {
+			p.UpdateConfig(perm)
+		}
+	}
+	t.settings.back()
+}
+
 func (t *permissionsTab) applyLive() {
 	rules := make(map[string]string, len(t.tools))
 	for _, tp := range t.tools {
 		rules[tp.name] = tp.mode
 	}
-	cfg := &config.PermissionConfig{
-		Default: "semi-ask",
-		Rules:   rules,
+	cfg, err := config.Load()
+	if err != nil {
+		return
 	}
-	_ = config.UpsertPermission(cfg)
+	perm := cfg.Permission
+	if perm == nil {
+		perm = &config.PermissionConfig{}
+	}
+	perm.Default = "semi-ask"
+	perm.Rules = rules
+	cfg.Permission = perm
+	_ = config.Save(cfg)
 	if m, ok := middlewares.Get("permission"); ok {
-		if perm, ok := m.(*permission.Middleware); ok {
-			perm.UpdateConfig(cfg)
+		if p, ok := m.(*permission.Middleware); ok {
+			p.UpdateConfig(perm)
 		}
 	}
+	t.settings.deps.Config = cfg
 }
