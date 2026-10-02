@@ -22,6 +22,12 @@ func (h *Hook[T]) Add(fn func(T) T) {
 	h.filters = append(h.filters, fn)
 }
 
+func (h *Hook[T]) Reset() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.filters = nil
+}
+
 func (h *Hook[T]) Apply(value T) T {
 	h.mu.RLock()
 	fns := make([]func(T) T, len(h.filters))

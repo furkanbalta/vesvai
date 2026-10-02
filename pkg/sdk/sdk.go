@@ -16,6 +16,7 @@ import (
 	"github.com/vesvai/vesvai/internal/core/logger"
 	"github.com/vesvai/vesvai/internal/decision"
 	"github.com/vesvai/vesvai/internal/llm"
+	"github.com/vesvai/vesvai/internal/router"
 	"github.com/vesvai/vesvai/internal/session"
 	"github.com/vesvai/vesvai/internal/vfs"
 
@@ -45,6 +46,7 @@ type Engine struct {
 	log       *Logger
 	llm       *llm.Manager
 	decisions *decision.Manager
+	router    *router.Router
 	sessions  *session.Manager
 	rec       *session.Recorder
 	fs        *VFS
@@ -114,6 +116,8 @@ func (e *Engine) init() error {
 	if err := e.decisions.Start(); err != nil {
 		return fmt.Errorf("sdk: start decision manager: %w", err)
 	}
+
+	e.router = router.New(router.Deps{Config: cfg, LLM: e.llm, Decision: e.decisions}, e.log)
 
 	store, err := e.openSessionStore()
 	if err != nil {

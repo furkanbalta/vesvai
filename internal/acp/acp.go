@@ -7,7 +7,6 @@ import (
 	"time"
 
 	json "github.com/goccy/go-json"
-	"github.com/google/uuid"
 
 	"github.com/vesvai/vesvai/internal/agent"
 	"github.com/vesvai/vesvai/internal/core/config"
@@ -286,77 +285,29 @@ func (s *Server) resolveModel(provider, model string) (llm.Provider, llm.Model, 
 	}
 	s.llmMgr.WaitUntilReady()
 
-	if provider != "" && model != "" {
-		return s.resolveExact(provider, model)
+	mode := llm.SelectModePreferred
+	if model != "" {
+		mode = llm.SelectModeExact
 	}
-
-	reply := "acp.select.reply." + uuid.NewString()
-	resultCh := make(chan llm.SelectResult, 1)
-	handler := func(res llm.SelectResult) {
-		select {
-		case resultCh <- res:
-		default:
-		}
-	}
-	_ = s.bus.SubscribeOnce(reply, handler)
-	defer s.bus.Unsubscribe(reply, handler)
-
-	s.bus.Publish(event.TopicModelSelect, llm.SelectRequest{
-		Mode:       llm.SelectModePreferred,
-		Provider:   provider,
-		Model:      model,
-		ReplyTopic: reply,
+	res := s.llmMgr.Select(llm.SelectRequest{
+		Mode:     mode,
+		Provider: provider,
+		Model:    model,
 	})
-
-	select {
-	case res := <-resultCh:
-		if res.Err != nil {
-			return nil, llm.Model{}, res.Err
-		}
-		return s.resolveExact(res.Provider, res.Model.ID)
-	case <-time.After(30 * time.Second):
-		return nil, llm.Model{}, ErrModelTimeout
+	if res.Err != nil {
+		return nil, llm.Model{}, ErrModelNotFound
 	}
-}
-
-func (s *Server) resolveExact(provider, model string) (llm.Provider, llm.Model, error) {
-	if provider == "" {
-		p, m, err := s.findModelAnywhere(model)
-		if err != nil {
-			return nil, llm.Model{}, err
-		}
-		return p, m, nil
-	}
-	p, err := s.llmMgr.Provider(provider)
+	prov, err := s.llmMgr.Provider(res.Provider)
 	if err != nil {
-		return nil, llm.Model{}, err
+		return nil, llm.Model{}, ErrModelNotFound
 	}
-	models, err := s.llmMgr.Models(provider)
-	if err != nil {
-		return nil, llm.Model{}, err
-	}
-	for _, m := range models {
-		if m.ID == model || m.Name == model {
-			return p, m, nil
-		}
-	}
-	return nil, llm.Model{}, ErrModelNotFound
-}
-
-func (s *Server) findModelAnywhere(model string) (llm.Provider, llm.Model, error) {
-	for _, p := range s.cfg.Providers {
-		if p, m, err := s.resolveExact(p.Provider, model); err == nil {
-			return p, m, nil
-		}
-	}
-	return nil, llm.Model{}, ErrModelNotFound
+	return prov, res.Model, nil
 }
 
 type acpError struct{}
 
 var (
 	ErrModelUnavailable = &RPCError{Code: ErrCodeInternal, Message: "llm manager unavailable"}
-	ErrModelTimeout     = &RPCError{Code: ErrCodeInternal, Message: "timed out selecting model"}
 	ErrModelNotFound    = &RPCError{Code: ErrCodeInternal, Message: "model not found"}
 	_                   = acpError{}
 )

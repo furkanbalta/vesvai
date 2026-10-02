@@ -28,14 +28,15 @@ func (a *Agent) run(ctx context.Context, input string, stream StreamHandler) (*R
 	}
 	mi := expandInput(input)
 	input = mi.Text
-	if a.Provider == nil {
-		return nil, a.fail(ctx, ErrNoProvider)
-	}
 	if err := a.resolveToolNames(); err != nil {
 		return nil, a.fail(ctx, err)
 	}
 	if err := a.resolveMiddlewareNames(); err != nil {
 		return nil, a.fail(ctx, err)
+	}
+	resolveModel(ctx, a, input)
+	if a.Provider == nil {
+		return nil, a.fail(ctx, ErrNoProvider)
 	}
 
 	ctx = WithAgent(ctx, a)
@@ -43,6 +44,9 @@ func (a *Agent) run(ctx context.Context, input string, stream StreamHandler) (*R
 	ctx = WithHistory(ctx, &state.history)
 	ctx = WithStream(ctx, stream)
 	a.debugf("agent %q started run", a.Name)
+	if err := a.chain.BeforeRun(ctx, a.Name, input); err != nil {
+		return nil, a.fail(ctx, err)
+	}
 	a.publish(TopicAgentStarted, AgentStarted{
 		AgentID:         a.ID,
 		AgentName:       a.Name,
@@ -60,10 +64,6 @@ func (a *Agent) run(ctx context.Context, input string, stream StreamHandler) (*R
 		Input:       input,
 		Attachments: a.Attachments,
 	})
-
-	if err := a.chain.BeforeRun(ctx, a.Name, input); err != nil {
-		return nil, a.fail(ctx, err)
-	}
 
 	prov := a.Provider
 	state.modelID = a.Model.ID
@@ -90,14 +90,15 @@ func (a *Agent) resume(ctx context.Context, input string, history []llm.Message,
 	}
 	mi := expandInput(input)
 	input = mi.Text
-	if a.Provider == nil {
-		return nil, a.fail(ctx, ErrNoProvider)
-	}
 	if err := a.resolveToolNames(); err != nil {
 		return nil, a.fail(ctx, err)
 	}
 	if err := a.resolveMiddlewareNames(); err != nil {
 		return nil, a.fail(ctx, err)
+	}
+	resolveModel(ctx, a, input)
+	if a.Provider == nil {
+		return nil, a.fail(ctx, ErrNoProvider)
 	}
 
 	ctx = WithAgent(ctx, a)
@@ -105,6 +106,9 @@ func (a *Agent) resume(ctx context.Context, input string, history []llm.Message,
 	ctx = WithHistory(ctx, &state.history)
 	ctx = WithStream(ctx, stream)
 	a.debugf("agent %q resumed run", a.Name)
+	if err := a.chain.BeforeRun(ctx, a.Name, input); err != nil {
+		return nil, a.fail(ctx, err)
+	}
 	a.publish(TopicAgentStarted, AgentStarted{
 		AgentID:         a.ID,
 		AgentName:       a.Name,
@@ -122,10 +126,6 @@ func (a *Agent) resume(ctx context.Context, input string, history []llm.Message,
 		Input:       input,
 		Attachments: a.Attachments,
 	})
-
-	if err := a.chain.BeforeRun(ctx, a.Name, input); err != nil {
-		return nil, a.fail(ctx, err)
-	}
 
 	prov := a.Provider
 	state.modelID = a.Model.ID

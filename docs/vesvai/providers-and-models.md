@@ -199,6 +199,26 @@ the behavior with `judge_provider`, `judge_model`, and `judge_threshold` — see
 }
 ```
 
+## Smart router
+
+The **smart router** is a system model that picks the best model for each agent
+and task at run time, instead of using one model for everything. It is backed by a
+decision model — JEV by default, or your preferred LLM if no decision provider has
+an API key — and falls back to the preferred model when nothing is available.
+
+Enable it in config (`smart_router.enabled`), then pick **Smart Router** in the
+TUI at Settings → General → Model (listed above the regular models) or pass
+`--model smart-router` on the CLI. When enabled, subagents (planner, explorer,
+developer, ...) are also routed automatically.
+
+Per-agent preferences under `smart_router.agents` support three layers:
+`default` model lists, per-`difficulty` lists (`trivial`/`moderate`/`complex` —
+the decision model scores the task first and routes to the matching bucket), and
+`images` lists for vision-capable variants. Models without image support are
+excluded automatically when the run has image attachments. The decision model's
+pick is always used — there is no confidence threshold. See
+[Config](config.md#smart_router).
+
 ## Model selection
 
 When a run starts, Vesvai resolves a provider/model in this order:

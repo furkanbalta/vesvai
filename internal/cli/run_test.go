@@ -25,6 +25,7 @@ import (
 	"github.com/vesvai/vesvai/internal/core/config"
 	"github.com/vesvai/vesvai/internal/core/event"
 	"github.com/vesvai/vesvai/internal/llm"
+	"github.com/vesvai/vesvai/internal/router"
 	"github.com/vesvai/vesvai/internal/session"
 	"github.com/vesvai/vesvai/internal/utils/query"
 	"github.com/vesvai/vesvai/internal/vfs"
@@ -411,6 +412,7 @@ func TestRunCommandNoMessageStartsChat(t *testing.T) {
 }
 
 func TestRunCommandSelectModel(t *testing.T) {
+	router.ModelOptionsHook.Reset()
 	c, cfg, mgr := newRunTestCLI(t)
 	addRunProvider(t, cfg, mgr, "runprov2", "m1")
 

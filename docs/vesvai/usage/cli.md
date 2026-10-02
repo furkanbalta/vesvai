@@ -29,13 +29,14 @@ chat in the same session.
 ```bash
 vesvai run "Explain the build system"
 vesvai run --provider openai --model gpt-4o "Review internal/agent"
+vesvai run --model smart-router "Fix the flaky tests"   # needs smart_router.enabled
 vesvai run --session 3f2b1c... "Continue where we left off"
 ```
 
 | Flag | Default | Description |
 |---|---|---|
 | `--provider` | auto | Provider to use |
-| `--model` | auto | Model to use |
+| `--model` | auto | Model to use. `smart-router` selects the best model per task/agent (see [Smart Router](../providers-and-models.md#smart-router)) |
 | `--select-model` | `false` | List available models and let you pick one (overrides `--model`) |
 | `--session` | — | Session ID to continue |
 | `--select-session` | `false` | List sessions and pick one to continue |

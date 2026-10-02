@@ -95,6 +95,19 @@ type CompactionConfig struct {
 	SummarizerModel    string   `json:"summarizer_model,omitempty"`
 }
 
+type RouterAgentConfig struct {
+	Default    []string            `json:"default,omitempty"`
+	Difficulty map[string][]string `json:"difficulty,omitempty"`
+	Images     []string            `json:"images,omitempty"`
+}
+
+type SmartRouterConfig struct {
+	Enabled  bool                         `json:"enabled"`
+	Provider string                       `json:"provider,omitempty"`
+	Model    string                       `json:"model,omitempty"`
+	Agents   map[string]RouterAgentConfig `json:"agents,omitempty"`
+}
+
 type Config struct {
 	Providers       []LLMConfig                     `json:"providers"`
 	Logger          LoggerConfig                    `json:"logger"`
@@ -105,6 +118,7 @@ type Config struct {
 	Theme           string                          `json:"theme,omitempty"`
 	Permission      *PermissionConfig               `json:"permission,omitempty"`
 	Compaction      *CompactionConfig               `json:"compaction,omitempty"`
+	SmartRouter     *SmartRouterConfig              `json:"smart_router,omitempty"`
 	Plugins         PluginConfig                    `json:"plugins,omitempty"`
 	MCPServers      map[string]MCPServerConfig      `json:"mcp_servers,omitempty"`
 	LanguageServers map[string]LanguageServerConfig `json:"language_servers,omitempty"`
@@ -163,6 +177,10 @@ func DefaultConfig() *Config {
 			Threshold:          80,
 			MaxMessages:        50,
 			MaxToolOutputChars: 4000,
+		},
+		SmartRouter: &SmartRouterConfig{
+			Enabled: true,
+			Agents:  make(map[string]RouterAgentConfig),
 		},
 		MCPServers:      make(map[string]MCPServerConfig),
 		LanguageServers: make(map[string]LanguageServerConfig),
