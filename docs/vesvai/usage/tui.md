@@ -175,7 +175,10 @@ the tab bar.
 
 - **Provider** — configure an existing provider again or add a new one by pasting an
   API key into a masked field.
-- **Model** — type to filter; the active model is marked with `●`.
+- **Model** — type to filter; the active model is marked with `●`. When the
+  [smart router](../providers-and-models.md#smart-router) is enabled, a **Smart
+  Router** entry appears at the top of the list: it auto-selects the best model
+  for each task and agent at run time.
 - **Reasoning** — available only for models that advertise reasoning options.
 - **Session → Load** — sessions from the current directory, newest first. Loading
   restores the last 50 messages; scrolling to the top loads older messages in

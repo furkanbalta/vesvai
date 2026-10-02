@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,14 +12,10 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-	"time"
-
-	"github.com/google/uuid"
 
 	"github.com/vesvai/vesvai/internal/agent"
 	"github.com/vesvai/vesvai/internal/agent/agents"
 	"github.com/vesvai/vesvai/internal/core/config"
-	"github.com/vesvai/vesvai/internal/core/event"
 	"github.com/vesvai/vesvai/internal/llm"
 	"github.com/vesvai/vesvai/internal/session"
 	"github.com/vesvai/vesvai/internal/utils/query"
@@ -223,59 +220,28 @@ func (s *Server) handleRunSync(w http.ResponseWriter, ctx context.Context, orch 
 }
 
 func (s *Server) resolveModel(provider, model string) (llm.Provider, llm.Model, error) {
-	if provider != "" && model != "" {
-		p, err := s.llmMgr.Provider(provider)
-		if err != nil {
-			return nil, llm.Model{}, err
-		}
-		models, err := s.llmMgr.Models(provider)
-		if err != nil {
-			return nil, llm.Model{}, err
-		}
-		for _, m := range models {
-			if m.ID == model || m.Name == model {
-				return p, m, nil
-			}
-		}
-		return nil, llm.Model{}, fmt.Errorf("model %q not found in provider %q", model, provider)
+	if s.llmMgr == nil {
+		return nil, llm.Model{}, errors.New("llm manager unavailable")
 	}
-
-	reply := "http.select.reply." + uuid.NewString()
-	resultCh := make(chan llm.SelectResult, 1)
-	handler := func(res llm.SelectResult) {
-		select {
-		case resultCh <- res:
-		default:
-		}
-	}
-	s.bus.SubscribeOnce(reply, handler)
-	defer s.bus.Unsubscribe(reply, handler)
+	s.llmMgr.WaitUntilReady()
 
 	mode := llm.SelectModePreferred
-	if provider != "" {
+	if model != "" {
 		mode = llm.SelectModeExact
 	}
-
-	s.bus.Publish(event.TopicModelSelect, llm.SelectRequest{
-		Mode:       mode,
-		Provider:   provider,
-		Model:      model,
-		ReplyTopic: reply,
+	res := s.llmMgr.Select(llm.SelectRequest{
+		Mode:     mode,
+		Provider: provider,
+		Model:    model,
 	})
-
-	select {
-	case res := <-resultCh:
-		if res.Err != nil {
-			return nil, llm.Model{}, res.Err
-		}
-		p, err := s.llmMgr.Provider(res.Provider)
-		if err != nil {
-			return nil, llm.Model{}, err
-		}
-		return p, res.Model, nil
-	case <-time.After(30 * time.Second):
-		return nil, llm.Model{}, fmt.Errorf("timed out selecting model")
+	if res.Err != nil {
+		return nil, llm.Model{}, fmt.Errorf("model selection failed: %w", res.Err)
 	}
+	prov, err := s.llmMgr.Provider(res.Provider)
+	if err != nil {
+		return nil, llm.Model{}, fmt.Errorf("model selection failed: %w", err)
+	}
+	return prov, res.Model, nil
 }
 
 func loadAttachments(paths []string) ([]llm.Attachment, error) {

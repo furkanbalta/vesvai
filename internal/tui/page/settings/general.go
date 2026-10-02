@@ -9,6 +9,7 @@ import (
 	"github.com/vesvai/vesvai/internal/core/config"
 	"github.com/vesvai/vesvai/internal/core/event"
 	"github.com/vesvai/vesvai/internal/llm"
+	"github.com/vesvai/vesvai/internal/router"
 	"github.com/vesvai/vesvai/internal/tui/components"
 	"github.com/vesvai/vesvai/internal/tui/layout"
 	"github.com/vesvai/vesvai/internal/tui/styles"
@@ -195,6 +196,9 @@ func (s *Settings) saveProvider(name, apiKey string) {
 }
 
 func (s *Settings) modelDisplay() string {
+	if s.model.provider == router.SmartRouterModel {
+		return "Smart Router"
+	}
 	if s.model.provider == "" {
 		return "—"
 	}
@@ -215,6 +219,14 @@ func (s *Settings) openModels() {
 	l.SetSearchable(true)
 
 	var items []components.ListItem
+	for _, opt := range router.ModelOptionsHook.Apply(nil) {
+		items = append(items, components.ListItem{
+			Label:  opt.Label,
+			Detail: opt.Detail,
+			Marked: s.model.provider == opt.Provider,
+			Data:   modelData{provider: opt.Provider, model: llm.Model{ID: opt.ModelID, Name: opt.Label}},
+		})
+	}
 	if s.deps.Config != nil && s.deps.LLM != nil {
 		for _, p := range s.deps.Config.Providers {
 			models, err := s.deps.LLM.Models(p.Provider)

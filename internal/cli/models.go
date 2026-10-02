@@ -10,6 +10,7 @@ import (
 	"github.com/vesvai/vesvai/internal/core/cache"
 	"github.com/vesvai/vesvai/internal/core/config"
 	"github.com/vesvai/vesvai/internal/llm"
+	"github.com/vesvai/vesvai/internal/router"
 )
 
 func (c *CLI) newModelsCommand() *cobra.Command {
@@ -31,6 +32,15 @@ func (c *CLI) runModels(out io.Writer, provider string) error {
 	if err != nil {
 		return fmt.Errorf("cli: load config: %w", err)
 	}
+
+	for _, opt := range router.ModelOptionsHook.Apply(nil) {
+		if provider != "" && provider != opt.Provider {
+			continue
+		}
+		fmt.Fprintf(out, "[%s]\n", opt.Provider)
+		fmt.Fprintf(out, "  - %s (%s)\n", opt.Label, opt.Detail)
+	}
+
 	if len(cfg.Providers) == 0 {
 		fmt.Fprintln(out, "no providers configured")
 		return nil

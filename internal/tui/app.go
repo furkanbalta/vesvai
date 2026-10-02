@@ -20,6 +20,7 @@ import (
 	"github.com/vesvai/vesvai/internal/core/event"
 	"github.com/vesvai/vesvai/internal/core/update"
 	"github.com/vesvai/vesvai/internal/llm"
+	"github.com/vesvai/vesvai/internal/router"
 	"github.com/vesvai/vesvai/internal/session"
 	"github.com/vesvai/vesvai/internal/skill"
 	"github.com/vesvai/vesvai/internal/tui/components"
@@ -94,6 +95,9 @@ type activeSession struct {
 }
 
 func (a *App) modelDisplay() string {
+	if a.model.provider == router.SmartRouterModel {
+		return "Smart Router"
+	}
 	if a.model.provider == "" {
 		return ""
 	}

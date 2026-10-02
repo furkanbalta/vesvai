@@ -658,7 +658,7 @@ func (a *App) runAgent(input string) {
 }
 
 func (a *App) runAgentWithAttachments(input string, attachments []llm.Attachment) {
-	ctx, cancel, history := a.prepareAgentRun(attachments)
+	ctx, cancel, history := a.prepareAgentRun(input, attachments)
 	defer a.finishAgentRun(cancel)
 
 	handler := func(agent.StreamEvent) error { return nil }
@@ -671,7 +671,7 @@ func (a *App) runAgentWithAttachments(input string, attachments []llm.Attachment
 	a.completeAgentRun(result)
 }
 
-func (a *App) prepareAgentRun(attachments []llm.Attachment) (context.Context, context.CancelFunc, []llm.Message) {
+func (a *App) prepareAgentRun(input string, attachments []llm.Attachment) (context.Context, context.CancelFunc, []llm.Message) {
 	ctx, cancel := context.WithCancel(a.ctx)
 
 	a.chatMu.Lock()
@@ -730,7 +730,7 @@ func (a *App) continueAgent() {
 	}
 	a.chatMu.Unlock()
 
-	ctx, cancel, history := a.prepareAgentRun(nil)
+	ctx, cancel, history := a.prepareAgentRun("", nil)
 	defer a.finishAgentRun(cancel)
 
 	result, _ := a.agent.Continue(ctx, history)

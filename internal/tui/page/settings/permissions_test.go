@@ -12,6 +12,7 @@ import (
 	"github.com/vesvai/vesvai/internal/core/event"
 	"github.com/vesvai/vesvai/internal/core/logger"
 	"github.com/vesvai/vesvai/internal/llm"
+	"github.com/vesvai/vesvai/internal/router"
 	"github.com/vesvai/vesvai/internal/tui/components"
 
 	_ "github.com/vesvai/vesvai/internal/decision/providers"
@@ -62,6 +63,63 @@ func permSettings(t *testing.T, cfg *config.Config, mgr *llm.Manager) *Settings 
 	s.tab = tabPermissions
 	s.HandleKey(tcell.NewEventKey(tcell.KeyDown, 0, 0))
 	return s
+}
+
+func TestSettingsModelDisplayShowsSmartRouterWhenSelected(t *testing.T) {
+	router.ModelOptionsHook.Reset()
+	t.Setenv("HOME", t.TempDir())
+	cfg := config.DefaultConfig()
+	cfg.SmartRouter.Enabled = true
+	_ = router.New(router.Deps{Config: cfg}, nil)
+
+	s := New(Deps{Config: cfg})
+	s.SetSelectedModel(router.SmartRouterModel, llm.Model{ID: router.SmartRouterModel, Name: "Smart Router"})
+	if got := s.modelDisplay(); got != "Smart Router" {
+		t.Fatalf("modelDisplay = %q, want Smart Router", got)
+	}
+
+	s.SetSelectedModel("openrouter", llm.Model{ID: "deepseek-v4-flash"})
+	if got := s.modelDisplay(); got != "openrouter/deepseek-v4-flash" {
+		t.Fatalf("modelDisplay = %q, want openrouter/deepseek-v4-flash", got)
+	}
+}
+
+func TestSettingsModelPickerListsSmartRouterWhenEnabled(t *testing.T) {
+	router.ModelOptionsHook.Reset()
+	t.Setenv("HOME", t.TempDir())
+	cfg := config.DefaultConfig()
+	cfg.SmartRouter.Enabled = true
+	_ = router.New(router.Deps{Config: cfg}, nil)
+
+	s := New(Deps{Config: cfg})
+	s.tab = tabGeneral
+	s.HandleKey(tcell.NewEventKey(tcell.KeyDown, 0, 0))
+	s.HandleKey(tcell.NewEventKey(tcell.KeyDown, 0, 0))
+	s.HandleKey(tcell.NewEventKey(tcell.KeyEnter, 0, 0))
+	if s.sub == nil {
+		t.Fatal("model picker did not open")
+	}
+	modal, ok := s.sub.(*listModal)
+	if !ok {
+		t.Fatalf("sub = %T, want *listModal", s.sub)
+	}
+	items := modal.list.Items()
+	if len(items) == 0 || items[0].Label != "Smart Router" {
+		t.Fatalf("expected Smart Router at top of picker, got %+v", items)
+	}
+
+	cfg.SmartRouter.Enabled = false
+	s2 := New(Deps{Config: cfg})
+	s2.tab = tabGeneral
+	s2.HandleKey(tcell.NewEventKey(tcell.KeyDown, 0, 0))
+	s2.HandleKey(tcell.NewEventKey(tcell.KeyDown, 0, 0))
+	s2.HandleKey(tcell.NewEventKey(tcell.KeyEnter, 0, 0))
+	modal2 := s2.sub.(*listModal)
+	for _, it := range modal2.list.Items() {
+		if it.Label == "Smart Router" {
+			t.Fatal("Smart Router must not be listed when disabled")
+		}
+	}
 }
 
 func TestPermissionsJudgeNavigation(t *testing.T) {
@@ -127,7 +185,6 @@ func TestPermissionsThresholdAdjustAndClamp(t *testing.T) {
 		t.Fatalf("threshold = %v, want 0.55", pt.judgeThreshold)
 	}
 
-	// clamp low: 0.55 -> 0.05 in ten left presses
 	for i := 0; i < 12; i++ {
 		s.HandleKey(tcell.NewEventKey(tcell.KeyLeft, 0, 0))
 	}
@@ -135,7 +192,6 @@ func TestPermissionsThresholdAdjustAndClamp(t *testing.T) {
 		t.Fatalf("threshold = %v, want clamped 0.05", pt.judgeThreshold)
 	}
 
-	// clamp high: 0.05 -> 1.0
 	for i := 0; i < 25; i++ {
 		s.HandleKey(tcell.NewEventKey(tcell.KeyRight, 0, 0))
 	}
@@ -297,7 +353,6 @@ func TestPermissionsSelectLLMSavesConfig(t *testing.T) {
 	s.HandleKey(tcell.NewEventKey(tcell.KeyDown, 0, 0))
 	s.HandleKey(tcell.NewEventKey(tcell.KeyEnter, 0, 0))
 
-	// 0 = LLM models header, 1 = chat-model
 	s.HandleKey(tcell.NewEventKey(tcell.KeyDown, 0, 0))
 	s.HandleKey(tcell.NewEventKey(tcell.KeyEnter, 0, 0))
 

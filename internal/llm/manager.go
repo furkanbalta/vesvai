@@ -23,6 +23,7 @@ type entry struct {
 	provider Provider
 	models   []Model
 	err      error
+	system   bool
 }
 
 type Manager struct {
@@ -54,6 +55,15 @@ func NewManager(bus event.Bus, log *logger.Logger, cacheStore cache.Cache) *Mana
 
 func (m *Manager) SetSessionResolver(fn SessionResolver) {
 	m.sessionResolver = fn
+}
+
+func (m *Manager) RegisterSystemProvider(name string, prov Provider, models []Model) {
+	if name == "" || prov == nil {
+		return
+	}
+	m.mu.Lock()
+	m.entries[name] = &entry{cfg: config.LLMConfig{Provider: name}, provider: prov, models: models, system: true}
+	m.mu.Unlock()
 }
 
 func (m *Manager) Start() error {
@@ -390,6 +400,9 @@ func (m *Manager) preferred(provider string) SelectResult {
 	defer m.mu.RUnlock()
 
 	for name, e := range m.entries {
+		if e.system {
+			continue
+		}
 		if provider != "" && name != provider {
 			continue
 		}

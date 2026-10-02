@@ -22,6 +22,7 @@ import (
 	"github.com/vesvai/vesvai/internal/mcp"
 	"github.com/vesvai/vesvai/internal/notification"
 	"github.com/vesvai/vesvai/internal/plugin"
+	"github.com/vesvai/vesvai/internal/router"
 	"github.com/vesvai/vesvai/internal/session"
 	"github.com/vesvai/vesvai/internal/skill"
 	"github.com/vesvai/vesvai/internal/utils/query"
@@ -75,6 +76,8 @@ func Run(args []string) error {
 		return fmt.Errorf("bootstrap: init decision manager: %w", err)
 	}
 	defer decMgr.Shutdown()
+
+	_ = router.New(router.Deps{Config: cfg, LLM: mgr, Decision: decMgr}, log)
 
 	bus.Publish(event.TopicAppMounted, cfg)
 

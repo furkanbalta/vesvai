@@ -25,6 +25,7 @@ import (
 	"github.com/vesvai/vesvai/internal/builtin/middlewares/compaction"
 	"github.com/vesvai/vesvai/internal/core/event"
 	"github.com/vesvai/vesvai/internal/llm"
+	"github.com/vesvai/vesvai/internal/router"
 	"github.com/vesvai/vesvai/internal/session"
 	"github.com/vesvai/vesvai/internal/utils/query"
 )
@@ -91,6 +92,9 @@ func (c *CLI) runRun(out io.Writer, in io.Reader, message string, opts runOption
 		}
 	}
 
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	var prov llm.Provider
 	var mdl llm.Model
 	if resume != nil && opts.provider == "" && opts.model == "" && !opts.selectModel {
@@ -103,9 +107,6 @@ func (c *CLI) runRun(out io.Writer, in io.Reader, message string, opts runOption
 	}
 	orch.SetModelProvider(mdl, prov)
 	orch.Bus = c.bus
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	renderer := newRunRenderer(out, in, orch.ID, opts.showThinking, opts.showSubagent)
 	renderer.bus = c.bus
@@ -432,6 +433,11 @@ func (c *CLI) selectModel(provider, model string, interactive bool) (llm.Provide
 			}
 		}
 		if len(matches) == 0 {
+			if res := c.llmMgr.Select(llm.SelectRequest{Mode: llm.SelectModeExact, Model: model}); res.Err == nil {
+				matches = append(matches, modelChoice{provider: res.Provider, model: res.Model})
+			}
+		}
+		if len(matches) == 0 {
 			return nil, llm.Model{}, fmt.Errorf("cli: model %q not found", model)
 		}
 		if len(matches) == 1 {
@@ -499,6 +505,9 @@ func (c *CLI) availableModels(provider string) ([]modelChoice, error) {
 		return toChoices(provider, models), nil
 	}
 	var out []modelChoice
+	for _, opt := range router.ModelOptionsHook.Apply(nil) {
+		out = append(out, modelChoice{provider: opt.Provider, model: llm.Model{ID: opt.ModelID, Name: opt.Label}})
+	}
 	for _, p := range c.cfg.Providers {
 		models, err := c.llmMgr.Models(p.Provider)
 		if err != nil {
@@ -562,6 +571,9 @@ func toChoices(provider string, models []llm.Model) []modelChoice {
 }
 
 func displayChoice(ch modelChoice, withProvider bool) string {
+	if ch.model.ID == router.SmartRouterModel {
+		return "Smart Router (auto-select per task)"
+	}
 	name := ch.model.ID
 	if ch.model.Name != "" {
 		name = ch.model.Name

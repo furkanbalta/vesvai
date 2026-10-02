@@ -144,6 +144,50 @@ chain first — the compacted view — and scrolling up walks back through earli
 re-checked against the loaded history, so sliding-window and tool-clearing also apply
 to resumed sessions.
 
+### `smart_router`
+
+Selects the best model per agent and task instead of using one model for everything.
+When enabled, a [decision model](providers-and-models.md#decision-models) (JEV by
+default) picks a model from your configured providers for the orchestrator and each
+subagent. Pick **Smart Router** in the TUI at Settings → General → Model (listed
+above the regular models when enabled), or pass `--model smart-router` on the CLI
+for a single run.
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | bool | `false` | Master toggle. When on, the orchestrator and every subagent are routed |
+| `provider` | string | — | Decision provider used for routing (currently `openrouter`). Unset → any decision-capable provider with an API key |
+| `model` | string | — | Decision model used for routing (default `typesafe/jev-1.13`) |
+| `agents` | object | — | Per-agent model preferences, keyed by agent name (`orchestrator`, `planner`, `explorer`, `developer`, ...) |
+
+Each agent entry accepts:
+
+| Key | Type | Description |
+|---|---|---|
+| `default` | string[] | Preferred model IDs for this agent. Matching models are offered first, in order |
+| `difficulty` | object | Per-task-difficulty lists keyed by `trivial`, `moderate`, `complex`. When configured, the decision model scores the task's difficulty first and the matching bucket's models are offered first |
+| `images` | string[] | Preferred model IDs when the task has image attachments (e.g. a vision variant) |
+
+**Routing behavior:**
+
+- Routing is a system hook (`OnModelResolve`) registered by the router and applied
+  by every agent at run start, before the provider check — so it works uniformly
+  in the CLI, TUI, HTTP/ACP servers, and the SDK without per-entry-point code. The
+  routed model is what appears in sessions and usage records.
+- The candidate list is built from every configured provider that has an API key.
+  Per-agent preferences are offered first (by ID or display name), then all
+  remaining models. Preference resolution: `images` when the task has
+  attachments, else the `difficulty` bucket, else `default`.
+- When the run has image attachments, models without image input support are
+  dropped from the list (even beyond the `images` preference).
+- The decision model's pick is always accepted — there is no confidence threshold.
+- Resolution order: difficulty score question (when `difficulty` is configured for
+  the agent) → decision model choice question → LLM selection (using the
+  preferred model) → the preferred model itself.
+- The orchestrator is routed when its run model is **Smart Router** (picked in
+  the TUI model list or `--model smart-router`); subagents are always routed when
+  the router is enabled.
+
 ### `mcp_servers`
 
 Map of server name to [MCP server config](configurations/mcp.md).
@@ -217,6 +261,34 @@ Map of server name to [language server config](configurations/lsp.md).
     "threshold": 80,
     "max_messages": 50,
     "max_tool_output_chars": 4000
+  },
+  "smart_router": {
+    "enabled": true,
+    "agents": {
+      "orchestrator": {
+        "default": ["deepseek-v4-flash"],
+        "difficulty": {
+          "trivial": ["deepseek-v4-flash"],
+          "moderate": ["deepseek-v4-flash"],
+          "complex": ["deepseek-v3", "deepseek-r1"]
+        },
+        "images": ["deepseek-v4-flash-vision-exp"]
+      },
+      "planner": {
+        "default": ["qwen3-coder", "qwen2.5-coder-32b"],
+        "difficulty": {
+          "trivial": ["qwen2.5-coder-7b"],
+          "complex": ["qwen3-coder", "qwen2.5-coder-32b"]
+        }
+      },
+      "developer": {
+        "default": ["qwen2.5-coder-7b"],
+        "difficulty": {
+          "complex": ["deepseek-v3", "claude-sonnet"]
+        },
+        "images": ["claude-sonnet"]
+      }
+    }
   },
   "mcp_servers": {
     "db": {
