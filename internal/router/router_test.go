@@ -172,6 +172,33 @@ func TestRouterSelectUsesDecisionPreference(t *testing.T) {
 	}
 }
 
+func TestRouterDecisionStateHasNoModelList(t *testing.T) {
+	mgr, _ := newRouterLLM(t, map[string][]llm.Model{
+		"prov-a": {plainModel("a-1"), visionModel("vision-1")},
+	})
+	dec := &mockDecisionProvider{name: "dec", choice: "prov-a/vision-1", conf: 0.9}
+	cfg := routerCfg(map[string][]llm.Model{
+		"prov-a": {plainModel("a-1"), visionModel("vision-1")},
+	}, nil)
+
+	r := New(Deps{Config: cfg, LLM: mgr, Decision: newRouterDecision(t, "dec", dec)}, nil)
+	if _, _, err := r.Select(context.Background(), SelectRequest{AgentName: "explorer", Task: "look around", HasImages: true}); err != nil {
+		t.Fatal(err)
+	}
+
+	// models live only in the choice options, not in the state text
+	if strings.Contains(dec.gotReq.State, "prov-a/a-1") || strings.Contains(dec.gotReq.State, "Available models") {
+		t.Fatalf("state must not list models:\n%s", dec.gotReq.State)
+	}
+	criteria := dec.gotReq.Questions["best_model"].Criteria.(map[string]string)
+	if _, ok := criteria["prov-a/vision-1"]; !ok {
+		t.Fatalf("options must carry model info: %v", criteria)
+	}
+	if !strings.Contains(dec.gotReq.State, "Images attached") {
+		t.Fatalf("state missing image hint:\n%s", dec.gotReq.State)
+	}
+}
+
 func TestRouterSelectFiltersByImage(t *testing.T) {
 	mgr, _ := newRouterLLM(t, map[string][]llm.Model{
 		"prov-a": {visionModel("vision-1"), plainModel("text-2")},

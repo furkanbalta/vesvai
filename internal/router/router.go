@@ -209,7 +209,7 @@ func (r *Router) evaluateDifficulty(ctx context.Context, req SelectRequest) stri
 	}
 	res, err := prov.Decide(ctx, &decision.Request{
 		Model: model,
-		State: buildTaskState(req),
+		State: buildState(req),
 		Questions: map[string]decision.Question{
 			"task_difficulty": decision.ScoreQuestion(
 				"How difficult is this task for an AI coding agent?",
@@ -383,10 +383,10 @@ func (r *Router) selectViaDecision(ctx context.Context, req SelectRequest, cands
 
 	res, err := prov.Decide(ctx, &decision.Request{
 		Model: model,
-		State: buildState(req, cands),
+		State: buildState(req),
 		Questions: map[string]decision.Question{
 			"best_model": decision.ChoiceQuestion(
-				"Select the single best model for this agent and task from the available options.",
+				"Select the single best suitable model for this agent and task from the options below.",
 				criteria,
 			),
 		},
@@ -436,9 +436,13 @@ func (r *Router) selectViaLLM(ctx context.Context, req SelectRequest, cands []ca
 	}
 
 	var b strings.Builder
-	b.WriteString("You are a model router. A task is described below; pick the single best model for it from the list.\n\n")
-	b.WriteString(buildState(req, cands))
-	b.WriteString("\n\nRespond with the exact key of the chosen model.")
+	b.WriteString("You are a model router. A task is described below; pick the single best suitable model for it.\n\n")
+	b.WriteString(buildState(req))
+	b.WriteString("\nAvailable models:\n")
+	for _, c := range cands {
+		fmt.Fprintf(&b, "- %s: %s\n", c.key, describeModel(c))
+	}
+	b.WriteString("\nRespond with the exact key of the chosen model.")
 
 	messages := []llm.Message{
 		llm.SystemMessage(b.String()),
@@ -480,11 +484,7 @@ func (r *Router) selectViaLLM(ctx context.Context, req SelectRequest, cands []ca
 	return candidate{}, false, fmt.Errorf("router: llm selected unknown model %q", picked.Model)
 }
 
-func buildTaskState(req SelectRequest) string {
-	return buildState(req, nil)
-}
-
-func buildState(req SelectRequest, cands []candidate) string {
+func buildState(req SelectRequest) string {
 	task := strings.TrimSpace(req.Task)
 	if len(task) > maxTaskChars {
 		task = task[:maxTaskChars] + "…"
@@ -499,13 +499,6 @@ func buildState(req SelectRequest, cands []candidate) string {
 	}
 	if req.HasImages {
 		b.WriteString("Images attached: yes — the model must support image input.\n")
-	}
-	if len(cands) == 0 {
-		return b.String()
-	}
-	b.WriteString("Available models:\n")
-	for _, c := range cands {
-		fmt.Fprintf(&b, "- %s: %s\n", c.key, describeModel(c))
 	}
 	return b.String()
 }
