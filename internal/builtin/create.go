@@ -7,15 +7,17 @@ import (
 	"github.com/vesvai/vesvai/internal/builtin/tools"
 	"github.com/vesvai/vesvai/internal/core/config"
 	"github.com/vesvai/vesvai/internal/core/event"
+	"github.com/vesvai/vesvai/internal/decision"
 	"github.com/vesvai/vesvai/internal/llm"
 	"github.com/vesvai/vesvai/internal/session"
 	"github.com/vesvai/vesvai/internal/vfs"
 )
 
 type Options struct {
-	LLM    *llm.Manager
-	Config *config.Config
-	Bus    event.Bus
+	LLM      *llm.Manager
+	Decision *decision.Manager
+	Config   *config.Config
+	Bus      event.Bus
 }
 
 func Create(fs *vfs.VFS, sess *session.Manager, opts Options) error {
@@ -23,6 +25,7 @@ func Create(fs *vfs.VFS, sess *session.Manager, opts Options) error {
 	middlewares.Create(fs, middlewares.Deps{
 		Config:   opts.Config,
 		LLM:      opts.LLM,
+		Decision: opts.Decision,
 		Sessions: sess,
 	})
 	tools.Create(fs, sess)

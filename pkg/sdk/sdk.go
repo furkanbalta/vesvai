@@ -14,10 +14,12 @@ import (
 	"github.com/vesvai/vesvai/internal/core/config"
 	"github.com/vesvai/vesvai/internal/core/event"
 	"github.com/vesvai/vesvai/internal/core/logger"
+	"github.com/vesvai/vesvai/internal/decision"
 	"github.com/vesvai/vesvai/internal/llm"
 	"github.com/vesvai/vesvai/internal/session"
 	"github.com/vesvai/vesvai/internal/vfs"
 
+	_ "github.com/vesvai/vesvai/internal/decision/providers"
 	_ "github.com/vesvai/vesvai/internal/llm/drivers"
 	_ "github.com/vesvai/vesvai/internal/llm/providers"
 )
@@ -37,17 +39,18 @@ type Options struct {
 }
 
 type Engine struct {
-	opts     Options
-	cfg      *Config
-	bus      event.Bus
-	log      *Logger
-	llm      *llm.Manager
-	sessions *session.Manager
-	rec      *session.Recorder
-	fs       *VFS
-	store    cache.Cache
-	mu       sync.Mutex
-	closed   bool
+	opts      Options
+	cfg       *Config
+	bus       event.Bus
+	log       *Logger
+	llm       *llm.Manager
+	decisions *decision.Manager
+	sessions  *session.Manager
+	rec       *session.Recorder
+	fs        *VFS
+	store     cache.Cache
+	mu        sync.Mutex
+	closed    bool
 }
 
 var (
@@ -107,6 +110,11 @@ func (e *Engine) init() error {
 		return fmt.Errorf("sdk: start llm manager: %w", err)
 	}
 
+	e.decisions = decision.NewManager(e.bus, e.log)
+	if err := e.decisions.Start(); err != nil {
+		return fmt.Errorf("sdk: start decision manager: %w", err)
+	}
+
 	store, err := e.openSessionStore()
 	if err != nil {
 		return fmt.Errorf("sdk: open session store: %w", err)
@@ -133,7 +141,7 @@ func (e *Engine) init() error {
 
 	if !e.opts.DisableBuiltins {
 		builtinsOnce.Do(func() {
-			_ = builtin.Create(fs, e.sessions, builtin.Options{LLM: e.llm, Config: cfg, Bus: e.bus})
+			_ = builtin.Create(fs, e.sessions, builtin.Options{LLM: e.llm, Decision: e.decisions, Config: cfg, Bus: e.bus})
 		})
 	}
 
@@ -153,6 +161,9 @@ func (e *Engine) cleanup() {
 	}
 	if e.llm != nil {
 		e.llm.Shutdown()
+	}
+	if e.decisions != nil {
+		e.decisions.Shutdown()
 	}
 	if e.sessions != nil {
 		_ = e.sessions.Close()

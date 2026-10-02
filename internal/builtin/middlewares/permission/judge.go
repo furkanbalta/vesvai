@@ -9,6 +9,8 @@ import (
 
 	"github.com/vesvai/vesvai/internal/agent"
 	"github.com/vesvai/vesvai/internal/agent/prompt"
+	"github.com/vesvai/vesvai/internal/core/config"
+	decisionapi "github.com/vesvai/vesvai/internal/decision"
 	"github.com/vesvai/vesvai/internal/llm"
 )
 
@@ -37,19 +39,16 @@ func (m *Middleware) resolveJudge() (llm.Provider, llm.Model, bool) {
 	}
 
 	if providerName != "" && modelID != "" {
-		prov, err := m.llm.Provider(providerName)
-		if err != nil {
-			return nil, llm.Model{}, false
+		if prov, err := m.llm.Provider(providerName); err == nil {
+			res := m.llm.Select(llm.SelectRequest{
+				Mode:     llm.SelectModeExact,
+				Provider: providerName,
+				Model:    modelID,
+			})
+			if res.Err == nil && res.Model.ID != "" {
+				return prov, res.Model, true
+			}
 		}
-		res := m.llm.Select(llm.SelectRequest{
-			Mode:     llm.SelectModeExact,
-			Provider: providerName,
-			Model:    modelID,
-		})
-		if res.Err != nil || res.Model.ID == "" {
-			return nil, llm.Model{}, false
-		}
-		return prov, res.Model, true
 	}
 
 	res := m.llm.Select(llm.SelectRequest{Mode: llm.SelectModePreferred})
@@ -61,6 +60,28 @@ func (m *Middleware) resolveJudge() (llm.Provider, llm.Model, bool) {
 		return nil, llm.Model{}, false
 	}
 	return prov, res.Model, true
+}
+
+func (m *Middleware) resolveDecisionJudge() (decisionapi.Provider, string, bool) {
+	if m.decision == nil {
+		return nil, "", false
+	}
+	var model string
+	if m.cfg != nil {
+		model = m.cfg.JudgeModel
+	}
+	if m.cfg != nil && m.cfg.JudgeProvider != "" {
+		prov, err := m.decision.Provider(m.cfg.JudgeProvider)
+		if err != nil {
+			return nil, "", false
+		}
+		return prov, model, true
+	}
+	prov, err := m.decision.Preferred()
+	if err != nil {
+		return nil, "", false
+	}
+	return prov, model, true
 }
 
 func generateJudgeSystemPrompt() (string, error) {
@@ -117,25 +138,8 @@ func buildJudgePrompt(call llm.ToolCall, permErr error, history []llm.Message) (
 }
 
 func formatHistory(msgs []llm.Message) string {
-	start := 0
-	seen := 0
-	for i := len(msgs) - 1; i >= 0; i-- {
-		m := msgs[i]
-		if m.Role == llm.RoleUser || (m.Role == llm.RoleAssistant && !emptyBlock(m)) {
-			seen++
-			if seen == judgeHistoryMax {
-				start = i
-				break
-			}
-		}
-	}
-	if seen == 0 {
-		return ""
-	}
-
 	var b strings.Builder
-	for i := start; i < len(msgs); i++ {
-		m := msgs[i]
+	for _, m := range msgs {
 		if m.Role != llm.RoleUser && m.Role != llm.RoleAssistant && m.Role != llm.RoleTool {
 			continue
 		}
@@ -182,7 +186,11 @@ func renderContextMessage(m llm.Message) string {
 		}
 		return strings.Join(lines, "\n")
 	case llm.RoleTool:
-		return "tool: " + llm.MessageText(m)
+		text := llm.MessageText(m)
+		if !strings.HasPrefix(text, "Error:") {
+			return ""
+		}
+		return "tool error: " + strings.TrimPrefix(text, "Error: ")
 	}
 	return ""
 }
@@ -195,6 +203,13 @@ func reasoningText(m llm.Message) string {
 }
 
 func (m *Middleware) askJudge(ctx context.Context, call llm.ToolCall, permErr error) (*decision, error) {
+	if prov, model, ok := m.resolveDecisionJudge(); ok {
+		verdict, err := m.askDecisionJudge(ctx, prov, model, call, permErr)
+		if err == nil {
+			return verdict, nil
+		}
+	}
+
 	judge := m.judge()
 	if judge == nil {
 		return nil, fmt.Errorf("judge provider unavailable")
@@ -218,6 +233,49 @@ func (m *Middleware) askJudge(ctx context.Context, call llm.ToolCall, permErr er
 	if reason == "" {
 		reason = "judge denied the tool call"
 	}
+	return &decision{Allow: false, Reason: reason}, nil
+}
+
+func (m *Middleware) askDecisionJudge(ctx context.Context, prov decisionapi.Provider, model string, call llm.ToolCall, permErr error) (*decision, error) {
+	state, err := buildJudgePrompt(call, permErr, agent.HistoryFrom(ctx))
+	if err != nil {
+		return nil, fmt.Errorf("judge: build prompt: %w", err)
+	}
+
+	res, err := prov.Decide(ctx, &decisionapi.Request{
+		Model: model,
+		State: state,
+		Questions: map[string]decisionapi.Question{
+			"safe_to_run": decisionapi.BoolQuestion(
+				"Is this action safe to run without a human approving it first?",
+				map[string]string{
+					"true":  "Reversible or low-impact, and clearly within the stated task.",
+					"false": "Destructive, irreversible, or broader than the task requires.",
+				},
+			),
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("judge decision request failed: %w", err)
+	}
+
+	answer, ok := res.Answers["safe_to_run"]
+	if !ok {
+		return nil, fmt.Errorf("judge decision returned no answer for %q", "safe_to_run")
+	}
+	p, ok := answer.NoulValue()
+	if !ok {
+		return nil, fmt.Errorf("judge decision returned an invalid response")
+	}
+
+	threshold := config.DefaultJudgeThreshold
+	if m.cfg != nil {
+		threshold = m.cfg.JudgeThresholdValue()
+	}
+	if p >= threshold {
+		return &decision{Allow: true}, nil
+	}
+	reason := fmt.Sprintf("judge denied the tool call (p=%.2f)", p)
 	return &decision{Allow: false, Reason: reason}, nil
 }
 

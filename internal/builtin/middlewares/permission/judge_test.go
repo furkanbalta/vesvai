@@ -123,15 +123,13 @@ func TestFormatHistory(t *testing.T) {
 	if !strings.Contains(out, "assistant thinking: thinking hard") {
 		t.Errorf("judge context missing thinking:\n%s", out)
 	}
-	for _, want := range []string{"fourth", "fifth", "sixth", "seventh"} {
+	for _, want := range []string{"first", "second", "third", "fourth", "fifth", "sixth", "seventh"} {
 		if !strings.Contains(out, want) {
-			t.Errorf("judge context missing %q:\n%s", want, out)
+			t.Errorf("judge context must include every message, missing %q:\n%s", want, out)
 		}
 	}
-	for _, bad := range []string{"first", "second", "third"} {
-		if strings.Contains(out, bad) {
-			t.Errorf("judge context must not contain %q:\n%s", bad, out)
-		}
+	if strings.Contains(out, "be good") {
+		t.Errorf("judge context must not contain system messages:\n%s", out)
 	}
 }
 
@@ -156,13 +154,34 @@ func TestFormatHistoryToolCalls(t *testing.T) {
 		llm.ToolMessage("Error: boom", "t1"),
 	}
 	out := formatHistory(msgs)
-	for _, want := range []string{"tool call: bash, read", "Error: boom"} {
+	for _, want := range []string{"tool call: bash, read", "tool error: boom"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("judge context missing %q:\n%s", want, out)
 		}
 	}
 	if strings.Contains(out, "assistant: \n") {
 		t.Error("empty assistant line rendered")
+	}
+	if strings.Contains(out, "Error: boom") {
+		t.Errorf("error prefix must be stripped:\n%s", out)
+	}
+}
+
+func TestFormatHistoryExcludesToolOutput(t *testing.T) {
+	callMsg := llm.AssistantMessage("")
+	callMsg.ToolCalls = []llm.ToolCall{{ID: "t1", Function: llm.Function{Name: "bash"}}}
+	msgs := []llm.Message{
+		llm.UserMessage("run it"),
+		callMsg,
+		llm.ToolMessage(`{"result": "huge output that must not leak"}`, "t1"),
+		llm.UserMessage("what did it say?"),
+	}
+	out := formatHistory(msgs)
+	if strings.Contains(out, "huge output") {
+		t.Errorf("tool output must not be included:\n%s", out)
+	}
+	if !strings.Contains(out, "what did it say?") {
+		t.Errorf("user message after tool call missing:\n%s", out)
 	}
 }
 

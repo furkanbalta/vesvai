@@ -168,6 +168,37 @@ Model lists are cached in `~/.vesvai/cache.db` (or `cache.json` with the JSON ca
 driver). `vesvai cache clear` empties the cache; `vesvai providers refresh` bypasses
 it and fetches from the network.
 
+## Decision models
+
+Alongside chat models, Vesvai can use **decision models** — models that answer
+typed questions (yes/no, choice, or an ordered score) about a piece of state
+instead of generating text. The first supported decision model is
+**JEV** (`typesafe/jev-1.13`) from TypeSafe, served through OpenRouter's
+Decisions API (`https://openrouter.ai/api/alpha/decisions`).
+
+Decision models reuse the regular provider configuration: the `openrouter`
+provider entry and its API key are shared, so one login covers both chat and
+decisions. There is no separate model list to fetch — the model ID is passed
+per request.
+
+Vesvai currently uses decision models for the **permission judge**: when an
+OpenRouter API key is configured, the judge uses JEV by default (even without
+`judge_provider` set), and falls back to the judge LLM on any error. Configure
+the behavior with `judge_provider`, `judge_model`, and `judge_threshold` — see
+[Permissions](features/permissions.md#the-judge-flow) and
+[Config](config.md#permission).
+
+```json
+{
+  "providers": [{ "provider": "openrouter", "api_key": "sk-or-..." }],
+  "permission": {
+    "judge_provider": "openrouter",
+    "judge_model": "typesafe/jev-1.13",
+    "judge_threshold": 0.8
+  }
+}
+```
+
 ## Model selection
 
 When a run starts, Vesvai resolves a provider/model in this order:

@@ -13,6 +13,8 @@ import (
 	"github.com/vesvai/vesvai/internal/core/config"
 	"github.com/vesvai/vesvai/internal/core/event"
 	"github.com/vesvai/vesvai/internal/core/logger"
+	"github.com/vesvai/vesvai/internal/decision"
+	_ "github.com/vesvai/vesvai/internal/decision/providers"
 	"github.com/vesvai/vesvai/internal/llm"
 	_ "github.com/vesvai/vesvai/internal/llm/drivers"
 	_ "github.com/vesvai/vesvai/internal/llm/providers"
@@ -68,6 +70,12 @@ func Run(args []string) error {
 	}
 	defer mgr.Shutdown()
 
+	decMgr := decision.NewManager(bus, log)
+	if err := decMgr.Start(); err != nil {
+		return fmt.Errorf("bootstrap: init decision manager: %w", err)
+	}
+	defer decMgr.Shutdown()
+
 	bus.Publish(event.TopicAppMounted, cfg)
 
 	sess, err := session.SessionModule(cfg.Session, bus, log)
@@ -117,7 +125,7 @@ func Run(args []string) error {
 	if err := skill.SkillModule(); err != nil {
 		return fmt.Errorf("bootstrap: init skills: %w", err)
 	}
-	if err := builtin.Create(fs, sess, builtin.Options{LLM: mgr, Config: cfg, Bus: bus}); err != nil {
+	if err := builtin.Create(fs, sess, builtin.Options{LLM: mgr, Decision: decMgr, Config: cfg, Bus: bus}); err != nil {
 		return fmt.Errorf("bootstrap: builtin: %w", err)
 	}
 	log.Finfo("vfs: workspace mounted at %s", fs.Root())

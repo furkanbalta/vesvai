@@ -10,6 +10,7 @@ import (
 	agentmw "github.com/vesvai/vesvai/internal/agent/middleware"
 	"github.com/vesvai/vesvai/internal/agent/tool"
 	"github.com/vesvai/vesvai/internal/core/config"
+	decisionapi "github.com/vesvai/vesvai/internal/decision"
 	"github.com/vesvai/vesvai/internal/llm"
 	"github.com/vesvai/vesvai/internal/vfs"
 )
@@ -39,9 +40,10 @@ func AllModes() []Mode {
 const defaultMode = ModeSemiAsk
 
 type Deps struct {
-	Config *config.PermissionConfig
-	LLM    *llm.Manager
-	Store  *Store
+	Config   *config.PermissionConfig
+	LLM      *llm.Manager
+	Decision *decisionapi.Manager
+	Store    *Store
 }
 
 type Middleware struct {
@@ -50,15 +52,17 @@ type Middleware struct {
 	cfg        *config.PermissionConfig
 	store      *Store
 	llm        *llm.Manager
+	decision   *decisionapi.Manager
 	judgeOnce  sync.Once
 	judgeAgent *agent.Agent
 }
 
 func New(deps Deps) *Middleware {
 	m := &Middleware{
-		cfg:   deps.Config,
-		store: deps.Store,
-		llm:   deps.LLM,
+		cfg:      deps.Config,
+		store:    deps.Store,
+		llm:      deps.LLM,
+		decision: deps.Decision,
 	}
 	if m.store == nil {
 		m.store = NewStore()

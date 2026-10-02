@@ -41,8 +41,9 @@ MCP tools default to `permission.default`. Override any tool with the
   "permission": {
     "default": "semi-ask",
     "rules": { "bash": "ask", "write": "allow" },
-    "judge_provider": "openai",
-    "judge_model": "gpt-4o-mini"
+    "judge_provider": "openrouter",
+    "judge_model": "typesafe/jev-1.13",
+    "judge_threshold": 0.8
   }
 }
 ```
@@ -102,10 +103,32 @@ desktop notification — see [Notifications](notifications.md).
 
 ## The judge flow
 
-In `judge` / `semi-judge` mode a dedicated **judge agent** reviews the tool call
-against the last few conversation messages and returns a structured
-`{allow, reason}` verdict. Configure which model judges with
-`judge_provider` / `judge_model`; by default the preferred model is used.
+In `judge` / `semi-judge` mode a judge reviews the tool call and returns an
+allow/deny verdict. Two judge engines are available:
+
+- **Decision model** — a fast, structured decision model such as
+  [JEV](../providers-and-models.md#decision-models) (TypeSafe, served via
+  OpenRouter). It receives the tool call and the full conversation history and
+  answers a single yes/no question (`safe_to_run`). The call is allowed when the
+  yes-probability is at least `judge_threshold`.
+- **Judge LLM** — a dedicated judge agent that reviews the tool call against the
+  conversation history and returns a structured `{allow, reason}` verdict. If the
+  tool was denied, its error message is included; tool outputs are not.
+
+Which engine runs is resolved in this order:
+
+1. **Explicit config** — `judge_provider` is set:
+   - a decision-capable provider (currently `openrouter`) → decision model, using
+     `judge_model` if given, otherwise the default (`typesafe/jev-1.13`);
+   - any other provider → judge LLM with `judge_model`.
+2. **Default decision** — no `judge_provider`: if any configured provider with an
+   API key supports decisions (an OpenRouter key is enough), the decision model is
+   used automatically.
+3. **Fallback** — otherwise the judge LLM runs on the preferred (agent's) model.
+
+If the decision model errors or returns no answer, Vesvai falls back to the judge
+LLM. Configure with `judge_provider` / `judge_model` / `judge_threshold`
+([config reference](../config.md#permission)).
 
 ## Remembered decisions
 
