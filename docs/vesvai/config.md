@@ -105,8 +105,9 @@ Controls when tools may run. See [Permissions](features/permissions.md).
 |---|---|---|---|
 | `default` | string | `"semi-ask"` | Mode when no rule matches: `allow`, `semi-ask`, `ask`, `semi-judge`, `judge` |
 | `rules` | object | — | Per-tool mode overrides, for example `{"bash": "ask", "write": "allow"}` |
-| `judge_provider` | string | — | Provider used by the judge LLM. Falls back to the preferred model |
-| `judge_model` | string | — | Model used by the judge LLM |
+| `judge_provider` | string | — | Provider used by the judge. Decision-capable providers (currently `openrouter`) use a [decision model](features/permissions.md#the-judge-flow); other providers use the judge LLM. Unset → a decision model is used automatically when any decision-capable provider has an API key |
+| `judge_model` | string | — | Model used by the judge. For decision providers, the decision model ID (for example `typesafe/jev-1.13`); otherwise the judge LLM model |
+| `judge_threshold` | number | `0.6` | Minimum yes-probability for the decision judge to allow a call |
 
 ### `compaction`
 
@@ -178,6 +179,10 @@ Map of server name to [language server config](configurations/lsp.md).
   "providers": [
     { "provider": "openai", "api_key": "sk-..." },
     {
+      "provider": "openrouter",
+      "api_key": "sk-or-..."
+    },
+    {
       "provider": "groq",
       "api_key": "gsk_...",
       "timeout": 60,
@@ -201,8 +206,9 @@ Map of server name to [language server config](configurations/lsp.md).
   "theme": "dark",
   "permission": {
     "default": "semi-ask",
-    "judge_provider": "openai",
-    "judge_model": "gpt-4o-mini",
+    "judge_provider": "openrouter",
+    "judge_model": "typesafe/jev-1.13",
+    "judge_threshold": 0.8,
     "rules": { "bash": "ask", "write": "allow" }
   },
   "compaction": {
