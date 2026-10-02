@@ -27,6 +27,11 @@ type CacheConfig struct {
 	Driver string `json:"driver"`
 }
 
+type NotificationConfig struct {
+	Drivers []string `json:"drivers"`
+	Enabled bool     `json:"enabled"`
+}
+
 type SessionConfig struct {
 	Driver string `json:"driver"`
 }
@@ -85,6 +90,7 @@ type Config struct {
 	Logger          LoggerConfig                    `json:"logger"`
 	Cache           CacheConfig                     `json:"cache"`
 	Session         SessionConfig                   `json:"session"`
+	Notification    NotificationConfig              `json:"notification"`
 	Server          ServerConfig                    `json:"server,omitempty"`
 	Theme           string                          `json:"theme,omitempty"`
 	Permission      *PermissionConfig               `json:"permission,omitempty"`
@@ -105,6 +111,10 @@ func DefaultConfig() *Config {
 		},
 		Session: SessionConfig{
 			Driver: "sqlite",
+		},
+		Notification: NotificationConfig{
+			Drivers: []string{"os"},
+			Enabled: true,
 		},
 		Server: ServerConfig{
 			Host: "127.0.0.1",

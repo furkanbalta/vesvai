@@ -151,6 +151,7 @@ nav:
         - Adding Context: vesvai/features/adding-context.md
         - Sessions: vesvai/features/sessions.md
         - Permissions: vesvai/features/permissions.md
+        - Notifications: vesvai/features/notifications.md
   - Sdk:
       - Get Started: sdk/index.md
       - Chat: sdk/chat.md

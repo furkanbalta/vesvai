@@ -18,6 +18,7 @@ import (
 	_ "github.com/vesvai/vesvai/internal/llm/providers"
 	"github.com/vesvai/vesvai/internal/lsp"
 	"github.com/vesvai/vesvai/internal/mcp"
+	"github.com/vesvai/vesvai/internal/notification"
 	"github.com/vesvai/vesvai/internal/plugin"
 	"github.com/vesvai/vesvai/internal/session"
 	"github.com/vesvai/vesvai/internal/skill"
@@ -46,6 +47,14 @@ func Run(args []string) error {
 	defer log.Close()
 
 	bus := event.New()
+
+	notif, err := notification.NotificationModule(cfg.Notification, bus, log)
+	if err != nil {
+		log.Fwarn("notification: failed to initialize: %v", err)
+	}
+	if notif != nil {
+		defer notif.Close()
+	}
 
 	cacheStore, err := cache.CacheModule(cfg.Cache)
 	if err != nil {

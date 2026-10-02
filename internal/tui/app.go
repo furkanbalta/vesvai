@@ -265,6 +265,7 @@ func (a *App) build() {
 	a.screen.SetStyle(th.Base())
 	a.screen.EnableMouse()
 	a.screen.EnablePaste()
+	a.screen.EnableFocus()
 	a.draw()
 }
 
@@ -398,6 +399,14 @@ func (a *App) loop() error {
 					if a.home.HandleClick(x, y, w, h) {
 						a.draw()
 					}
+				}
+			}
+		case *tcell.EventFocus:
+			if a.bus != nil {
+				if e.Focused {
+					a.bus.Publish(event.TopicAppFocused)
+				} else {
+					a.bus.Publish(event.TopicAppBlurred)
 				}
 			}
 		}
