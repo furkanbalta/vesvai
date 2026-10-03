@@ -188,6 +188,25 @@ Each agent entry accepts:
   the TUI model list or `--model smart-router`); subagents are always routed when
   the router is enabled.
 
+### `memory`
+
+Persistent, markdown-based memory for coding agents. A background observer distills
+each run's tool uses into observations, a librarian curates them into markdown files,
+and a memory panel is injected into future runs. See [Memory](features/memory.md) for
+the full guide.
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | bool | `true` | Master switch for capture, storage, and panel injection |
+| `provider` | string | — | Provider for the observer/summarizer/librarian LLM calls. Unset → the running agent's model |
+| `model` | string | — | Model for memory LLM calls (only read when `provider` is set) |
+| `gate` | string | `"auto"` | Relevance gate for `mem-search`: `auto`, `decision`, `llm`, `score`, or `off` |
+| `threshold` | number | `0.6` | Minimum decision-model relevance for `decision` gating |
+| `context_budget` | int | `8000` | Max chars of the injected memory panel |
+| `max_results` | int | `5` | Default result count for `mem-search` |
+| `consolidate` | bool | `true` | Run the librarian to keep the curated memory files up to date |
+| `skip_tools` | string[] | — | Additional tools whose results are never captured |
+
 ### `mcp_servers`
 
 Map of server name to [MCP server config](configurations/mcp.md).
@@ -289,6 +308,14 @@ Map of server name to [language server config](configurations/lsp.md).
         "images": ["claude-sonnet"]
       }
     }
+  },
+  "memory": {
+    "enabled": true,
+    "gate": "auto",
+    "threshold": 0.6,
+    "context_budget": 8000,
+    "max_results": 5,
+    "consolidate": true
   },
   "mcp_servers": {
     "db": {

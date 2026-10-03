@@ -4,7 +4,7 @@ icon: lucide/wrench
 
 # Tools
 
-Tools are the functions the model can call. Vesvai ships with 18 built-in tools and
+Tools are the functions the model can call. Vesvai ships with 20 built-in tools and
 registers additional tools from connected [MCP servers](mcp.md). Custom tools can be
 added with the [SDK](../../sdk/extending.md).
 
@@ -216,13 +216,41 @@ See [Subagents](../features/subagents.md) for the full workflow.
 Registered agent types for `task`: `orchestrator`, `explorer`, `planner`, and
 `developer`.
 
+## Memory
+
+The memory tools query the [markdown-based memory system](../features/memory.md).
+They are registered when memory is enabled and available to the orchestrator,
+planner, and developer agents.
+
+### `mem-search`
+
+Keyword search over the project's stored memory entries (observations, summaries,
+and the curated files). Results are scored by title/body term matches and filtered
+by the configured relevance gate (`auto`, `decision`, `llm`, `score`, or `off`),
+then returned as XML. Use it *before* re-investigating something that may already
+have been solved or learned in a past session.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `query` | string | yes | Search query: keywords, a file path, an error message, or a natural-language question |
+| `limit` | int | no | Maximum number of results (1–10, default from `memory.max_results`) |
+
+### `mem-read`
+
+Read the full markdown entry of a memory id (e.g. `obs-9f3a1b` or `sum-2c4d5e`).
+IDs appear in `mem-search` results, in the memory panel, and in the memory index.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `id` | string | yes | Memory entry id |
+
 ## Tool availability per agent
 
 | Agent | Tools |
 |---|---|
-| `orchestrator` | All file tools, `askuserquestion`, `bash`, `task`, `taskstatus`, `todoread`, `todowrite`, `webfetch`, `websearch`, `loadskill`, `enterplanmode`, `exitplanmode` |
-| `planner` | File tools write-scoped to `.vesvai/plans`, `bash`, `webfetch`, `websearch`, `todoread`, `todowrite` |
-| `developer` | All file tools, `bash`, `webfetch`, `websearch`, `todoread`, `todowrite` |
+| `orchestrator` | All file tools, `askuserquestion`, `bash`, `task`, `taskstatus`, `todoread`, `todowrite`, `webfetch`, `websearch`, `loadskill`, `enterplanmode`, `exitplanmode`, `mem-search`, `mem-read` |
+| `planner` | File tools write-scoped to `.vesvai/plans`, `bash`, `webfetch`, `websearch`, `todoread`, `todowrite`, `mem-search`, `mem-read` |
+| `developer` | All file tools, `bash`, `webfetch`, `websearch`, `todoread`, `todowrite`, `mem-search`, `mem-read` |
 | `explorer` | `glob`, `grep`, `list`, `read`, `bash`, `webfetch`, `websearch` |
 
 ## Permissions
@@ -237,6 +265,7 @@ built-in defaults:
 | `todoread`, `todowrite` | `allow` |
 | `task`, `taskstatus` | `allow` |
 | `webfetch`, `websearch`, `loadskill` | `allow` |
+| `mem-search`, `mem-read` | `semi-ask` (falls back to `permission.default`) |
 | `enterplanmode`, `exitplanmode` | `ask` |
 | `askuserquestion` | `allow` (never gated) |
 
