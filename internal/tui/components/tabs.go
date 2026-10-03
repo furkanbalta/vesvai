@@ -10,13 +10,17 @@ type Tabs struct {
 	names   []string
 	active  int
 	focused bool
+	scroll  int
 }
 
 func NewTabs(names []string) *Tabs {
 	return &Tabs{names: names}
 }
 
-func (t *Tabs) SetActive(n int) { t.active = n }
+func (t *Tabs) SetActive(n int) {
+	t.active = n
+	t.ensureVisible()
+}
 
 func (t *Tabs) Active() int { return t.active }
 
@@ -37,6 +41,7 @@ func (t *Tabs) HandleKey(ev *tcell.EventKey) bool {
 		} else {
 			t.active = len(t.names) - 1
 		}
+		t.ensureVisible()
 		return true
 	case tcell.KeyRight:
 		if t.active < len(t.names)-1 {
@@ -44,15 +49,80 @@ func (t *Tabs) HandleKey(ev *tcell.EventKey) bool {
 		} else {
 			t.active = 0
 		}
+		t.ensureVisible()
 		return true
 	}
 	return false
 }
 
-func (t *Tabs) Draw(s tcell.Screen, x, y int, focused bool) {
+func tabWidth(name string) int {
+	return len([]rune(name)) + 3
+}
+
+func (t *Tabs) fitWindow(width int) (int, int) {
+	n := len(t.names)
+	if n == 0 {
+		return 0, 0
+	}
+	budget := width - 4
+	if budget < 0 {
+		budget = 0
+	}
+	total := func(a, b int) int {
+		w := 0
+		for i := a; i < b; i++ {
+			w += tabWidth(t.names[i])
+		}
+		return w
+	}
+	if total(0, n) <= budget {
+		t.scroll = 0
+		return 0, n
+	}
+	start := t.scroll
+	if start >= n {
+		start = 0
+	}
+	if start > t.active {
+		start = t.active
+	}
+	for start < t.active && total(start, t.active+1) > budget {
+		start++
+	}
+	if start == t.active && total(start, t.active+1) > budget {
+		t.scroll = start
+		return start, t.active + 1
+	}
+	end := t.active + 1
+	for end < n && total(start, end+1) <= budget {
+		end++
+	}
+	for start > 0 && total(start-1, end) <= budget {
+		start--
+	}
+	t.scroll = start
+	return start, end
+}
+
+func (t *Tabs) ensureVisible() {
+	if t.scroll > t.active {
+		t.scroll = t.active
+	}
+}
+
+func (t *Tabs) Draw(s tcell.Screen, x, y, width int, focused bool) {
 	th := styles.Current()
+	start, end := t.fitWindow(width)
+	hasLeft := start > 0
+	hasRight := end < len(t.names)
+
 	cx := x
-	for i, name := range t.names {
+	if hasLeft {
+		DrawText(s, cx, y, "◀", th.Base().Foreground(th.Hint).Background(th.InputBg))
+		cx += 2
+	}
+	for i := start; i < end; i++ {
+		name := t.names[i]
 		style := th.Base().Foreground(th.Hint).Background(th.InputBg)
 		if i == t.active {
 			if focused {
@@ -62,6 +132,9 @@ func (t *Tabs) Draw(s tcell.Screen, x, y int, focused bool) {
 			}
 		}
 		DrawText(s, cx, y, " "+name+" ", style)
-		cx += len([]rune(name)) + 3
+		cx += tabWidth(name)
+	}
+	if hasRight {
+		DrawText(s, cx, y, "▶", th.Base().Foreground(th.Hint).Background(th.InputBg))
 	}
 }

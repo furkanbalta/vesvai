@@ -143,6 +143,7 @@ func subAgentTool() tool.Tool {
 						return
 					}
 					sub.SetModelProvider(parent.Model, parent.Provider)
+					sub.RouterManaged = parent.RouterManaged
 					sub.ParentAgentID = parent.ID
 					sub.DisplayName = sa.Name
 
@@ -210,6 +211,7 @@ func subAgentTool() tool.Tool {
 					return
 				}
 				sub.SetModelProvider(parent.Model, parent.Provider)
+				sub.RouterManaged = parent.RouterManaged
 				sub.ParentAgentID = parent.ID
 				sub.DisplayName = sa.Name
 				if parent.Bus != nil {

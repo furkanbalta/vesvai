@@ -158,7 +158,7 @@ transcript. Press ++esc++ or click the back header to return. See
 
 ## Settings
 
-Open with ++ctrl+p++. The overlay has eight tabs; switch with ++left++/++right++ when
+Open with ++ctrl+p++. The overlay has nine tabs; switch with ++left++/++right++ when
 the tab bar is focused. Press ++down++ to enter the tab content, ++up++ to return to
 the tab bar.
 
@@ -171,6 +171,7 @@ the tab bar.
 | **Rules** | Global and project rule files |
 | **Plugins** | Installed plugins with enable/disable toggle |
 | **Permissions** | Preset selector and per-tool permission modes |
+| **Memory** | Memory system: observer model, relevance gating, context budget (see below) |
 | **System** | App name, version, OS, architecture, and manual update check |
 
 - **Provider** — configure an existing provider again or add a new one by pasting an
@@ -247,6 +248,26 @@ The **Threshold** row adjusts the decision judge's minimum yes-probability
 (`judge_threshold`): ++left++/++right++ step it by `0.05`, clamped between `0.05`
 and `1.0`, and the value is saved immediately. The row is disabled (and labeled
 *decision only*) when the judge provider is not decision-capable.
+
+### Memory tab
+
+The Memory tab configures the [markdown-based memory system](../features/memory.md).
+Press ++down++ to enter the rows, ++up++/++down++ to navigate, and ++enter++ or
+++left++/++right++ to toggle switches and adjust values:
+
+| Row | Description |
+|---|---|
+| **Enabled** | Master switch for memory capture and panel injection (on/off) |
+| **Observer** | Provider/model for memory LLM calls, or *default (agent model)*. ++enter++ opens a searchable picker with decision providers and LLM models |
+| **Relevance gating** | Cycle `auto` → `decision` → `llm` → `score` → `off` with ++left++/++right++ |
+| **Relevance threshold** | `0.05`–`1.0`, stepped by `0.05`. Only active for `decision` gating (labeled *decision only* otherwise) |
+| **Context budget** | `500`–`100000` chars, stepped by `500` |
+| **Max results** | `1`–`10` |
+| **Consolidate** | Run the librarian after each run (on/off) |
+| **Entries / Last entry** | Read-only stats from the memory index |
+| **Clear memory** | Deletes all memory files for this project (with confirmation) |
+
+All changes save immediately to `~/.vesvai/vesvai.json` and apply live.
 
 ### System tab
 

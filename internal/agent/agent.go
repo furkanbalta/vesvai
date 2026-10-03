@@ -25,6 +25,7 @@ type Agent struct {
 	Name            string
 	Description     string
 	ParentAgentID   string
+	RouterManaged   bool
 	DisplayName     string
 	Model           llm.Model
 	Provider        llm.Provider
@@ -88,6 +89,7 @@ func (a *Agent) Clone(name string) *Agent {
 		WithBus(a.Bus),
 	)
 	c.log = a.log
+	c.RouterManaged = a.RouterManaged
 	c.chain = a.chain.Clone()
 	for _, t := range a.Tools.List() {
 		_ = c.Tools.Register(t)

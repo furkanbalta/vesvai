@@ -13,9 +13,11 @@ import (
 	"github.com/vesvai/vesvai/internal/core/event"
 	"github.com/vesvai/vesvai/internal/core/hook"
 	"github.com/vesvai/vesvai/internal/core/logger"
+	"github.com/vesvai/vesvai/internal/decision"
 	"github.com/vesvai/vesvai/internal/llm"
 	"github.com/vesvai/vesvai/internal/lsp"
 	"github.com/vesvai/vesvai/internal/mcp"
+	"github.com/vesvai/vesvai/internal/memory"
 	"github.com/vesvai/vesvai/internal/plugin"
 	"github.com/vesvai/vesvai/internal/session"
 	"github.com/vesvai/vesvai/internal/tui"
@@ -29,6 +31,8 @@ type CLI struct {
 	log       *logger.Logger
 	sessions  *session.Manager
 	llmMgr    *llm.Manager
+	memMgr    *memory.Manager
+	decMgr    *decision.Manager
 	mcpMgr    *mcp.Manager
 	lspMgr    *lsp.Manager
 	fs        *vfs.VFS
@@ -40,7 +44,7 @@ type CLI struct {
 	picker    func(items []string, label string) (int, error)
 }
 
-func New(bus event.Bus, cfg *config.Config, log *logger.Logger, vfs *vfs.VFS, sessions *session.Manager, llmMgr *llm.Manager, mcpMgr *mcp.Manager, lspMgr *lsp.Manager, cache cache.Cache, pluginMgr *plugin.Manager) *CLI {
+func New(bus event.Bus, cfg *config.Config, log *logger.Logger, vfs *vfs.VFS, sessions *session.Manager, llmMgr *llm.Manager, decMgr *decision.Manager, memMgr *memory.Manager, mcpMgr *mcp.Manager, lspMgr *lsp.Manager, cache cache.Cache, pluginMgr *plugin.Manager) *CLI {
 	c := &CLI{
 		bus:       bus,
 		cfg:       cfg,
@@ -49,6 +53,8 @@ func New(bus event.Bus, cfg *config.Config, log *logger.Logger, vfs *vfs.VFS, se
 		cache:     cache,
 		sessions:  sessions,
 		llmMgr:    llmMgr,
+		decMgr:    decMgr,
+		memMgr:    memMgr,
 		mcpMgr:    mcpMgr,
 		lspMgr:    lspMgr,
 		pluginMgr: pluginMgr,
@@ -129,6 +135,8 @@ func (c *CLI) tuiDeps() (settings.Deps, error) {
 	return settings.Deps{
 		Config:   c.cfg,
 		LLM:      c.llmMgr,
+		Decision: c.decMgr,
+		Memory:   c.memMgr,
 		MCP:      c.mcpMgr,
 		Sessions: c.sessions,
 		Agent:    orch,

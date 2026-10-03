@@ -43,6 +43,12 @@ language servers — all inside a sandboxed workspace.
     System reminders keep every agent informed mid-turn: usage and context-window
     status, background subagent results, and more — injected automatically.
 
+- [:lucide-brain:{ .lg } **Project memory**](features/memory.md)
+
+    A markdown-based memory system: an observer distills every run into
+    observations, a librarian curates them, and future runs get a budget-bounded
+    memory panel of what was done, decided, and learned.
+
 - [:lucide-puzzle:{ .lg } **Extensible**](configurations/skills.md)
 
     Skills, rules, MCP servers, LSP servers, custom tools, middlewares, providers,
