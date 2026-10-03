@@ -91,6 +91,9 @@ func New(deps Deps, log *logger.Logger) *Router {
 		if a.ParentAgentID == "" && a.Model.ID != SmartRouterModel {
 			return mr
 		}
+		if a.ParentAgentID != "" && !a.RouterManaged {
+			return mr
+		}
 		prov, mdl, err := r.Select(mr.Ctx, SelectRequest{
 			AgentName: a.Name,
 			Task:      mr.Input,
@@ -98,6 +101,7 @@ func New(deps Deps, log *logger.Logger) *Router {
 		})
 		if err == nil {
 			a.SetModelProvider(mdl, prov)
+			a.RouterManaged = true
 		}
 		return mr
 	})
