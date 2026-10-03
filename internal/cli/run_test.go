@@ -25,6 +25,7 @@ import (
 	"github.com/vesvai/vesvai/internal/core/config"
 	"github.com/vesvai/vesvai/internal/core/event"
 	"github.com/vesvai/vesvai/internal/llm"
+	"github.com/vesvai/vesvai/internal/memory"
 	"github.com/vesvai/vesvai/internal/router"
 	"github.com/vesvai/vesvai/internal/session"
 	"github.com/vesvai/vesvai/internal/utils/query"
@@ -299,6 +300,7 @@ func newRunTestCLI(t *testing.T) (*CLI, *config.Config, *llm.Manager) {
 	web.WebTools(fs)
 	loadskill.LoadSkillTool(sess)
 	plan.PlanTools(fs)
+	_ = memory.RegisterTools(nil)
 	middlewares.Create(fs, middlewares.Deps{})
 	orchestrator.Register(fs)
 	if _, err := agents.New("orchestrator"); err != nil {
@@ -306,7 +308,7 @@ func newRunTestCLI(t *testing.T) (*CLI, *config.Config, *llm.Manager) {
 	}
 
 	addRunProvider(t, cfg, mgr, "runprov", "m1")
-	return New(bus, cfg, log, fs, sess, mgr, nil, nil, nil, nil), cfg, mgr
+	return New(bus, cfg, log, fs, sess, mgr, nil, nil, nil, nil, nil, nil), cfg, mgr
 }
 
 func addRunProvider(t *testing.T, cfg *config.Config, mgr *llm.Manager, name string, modelIDs ...string) {

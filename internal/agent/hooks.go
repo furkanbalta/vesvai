@@ -8,8 +8,9 @@ import (
 )
 
 type MessageInput struct {
-	Text  string
-	Calls []llm.ToolCall
+	Text            string
+	Calls           []llm.ToolCall
+	SystemReminders []string
 }
 
 var messageInputHook = hook.NewHook[MessageInput]()

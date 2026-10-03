@@ -67,6 +67,10 @@ func TestSettingsTabs(t *testing.T) {
 		t.Errorf("after Right tab = %v, want Permissions", s.tab)
 	}
 	s.HandleKey(tcell.NewEventKey(tcell.KeyRight, 0, 0))
+	if s.tab != tabMemory {
+		t.Errorf("after Right tab = %v, want Memory", s.tab)
+	}
+	s.HandleKey(tcell.NewEventKey(tcell.KeyRight, 0, 0))
 	if s.tab != tabSystem {
 		t.Errorf("after Right tab = %v, want System", s.tab)
 	}

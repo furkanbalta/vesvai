@@ -20,6 +20,7 @@ import (
 	_ "github.com/vesvai/vesvai/internal/llm/providers"
 	"github.com/vesvai/vesvai/internal/lsp"
 	"github.com/vesvai/vesvai/internal/mcp"
+	"github.com/vesvai/vesvai/internal/memory"
 	"github.com/vesvai/vesvai/internal/notification"
 	"github.com/vesvai/vesvai/internal/plugin"
 	"github.com/vesvai/vesvai/internal/router"
@@ -79,6 +80,14 @@ func Run(args []string) error {
 
 	_ = router.New(router.Deps{Config: cfg, LLM: mgr, Decision: decMgr}, log)
 
+	memMgr := memory.New(memory.Deps{
+		Config:   cfg.Memory,
+		LLM:      mgr,
+		Decision: decMgr,
+		Bus:      bus,
+		Log:      log,
+	})
+
 	bus.Publish(event.TopicAppMounted, cfg)
 
 	sess, err := session.SessionModule(cfg.Session, bus, log)
@@ -128,7 +137,7 @@ func Run(args []string) error {
 	if err := skill.SkillModule(); err != nil {
 		return fmt.Errorf("bootstrap: init skills: %w", err)
 	}
-	if err := builtin.Create(fs, sess, builtin.Options{LLM: mgr, Decision: decMgr, Config: cfg, Bus: bus}); err != nil {
+	if err := builtin.Create(fs, sess, builtin.Options{LLM: mgr, Decision: decMgr, Config: cfg, Bus: bus, Memory: memMgr}); err != nil {
 		return fmt.Errorf("bootstrap: builtin: %w", err)
 	}
 	log.Finfo("vfs: workspace mounted at %s", fs.Root())
@@ -155,7 +164,7 @@ func Run(args []string) error {
 
 	log.Info("application started")
 
-	app := cli.New(bus, cfg, log, fs, sess, mgr, mcpMgr, lspMgr, cacheStore, pluginMgr)
+	app := cli.New(bus, cfg, log, fs, sess, mgr, decMgr, memMgr, mcpMgr, lspMgr, cacheStore, pluginMgr)
 	if err := app.Execute(args); err != nil {
 		return fmt.Errorf("bootstrap: cli: %w", err)
 	}

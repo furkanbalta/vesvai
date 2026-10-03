@@ -23,10 +23,11 @@ const (
 	tabRules
 	tabPlugins
 	tabPermissions
+	tabMemory
 	tabSystem
 )
 
-var tabNames = []string{"General", "Session", "MCP", "Skills", "Rules", "Plugins", "Permissions", "System"}
+var tabNames = []string{"General", "Session", "MCP", "Skills", "Rules", "Plugins", "Permissions", "Memory", "System"}
 
 type settingsFocus int
 
@@ -64,6 +65,7 @@ type Settings struct {
 	session     *sessionTab
 	plugins     *pluginsTab
 	permissions *permissionsTab
+	memory      *memoryTab
 	system      *systemTab
 
 	active *SessionInfo
@@ -95,6 +97,7 @@ func New(deps Deps) *Settings {
 	s.session = newSessionTab(s)
 	s.plugins = newPlugins(s)
 	s.permissions = newPermissions(s)
+	s.memory = newMemoryTab(s)
 	s.system = newSystem(s)
 	return s
 }
@@ -255,6 +258,8 @@ func (s *Settings) HandleKey(ev *tcell.EventKey) bool {
 		handled = s.plugins.HandleKey(ev)
 	case tabPermissions:
 		handled = s.permissions.HandleKey(ev)
+	case tabMemory:
+		handled = s.memory.HandleKey(ev)
 	case tabSystem:
 		handled = s.system.HandleKey(ev)
 	}
@@ -281,7 +286,7 @@ func (s *Settings) Draw(screen tcell.Screen, bounds layout.Region, focused bool)
 	}
 	inner := components.DrawCenteredBox(screen, bounds, w, h, "Settings")
 
-	s.tabs.Draw(screen, inner.Left+1, inner.Top, s.focus == settingsFocusTabs)
+	s.tabs.Draw(screen, inner.Left+1, inner.Top, inner.Width-2, s.focus == settingsFocusTabs)
 
 	if s.sub != nil {
 		s.sub.Draw(screen, inner, true)
@@ -306,6 +311,8 @@ func (s *Settings) Draw(screen tcell.Screen, bounds layout.Region, focused bool)
 		s.plugins.Draw(screen, content, contentFocused)
 	case tabPermissions:
 		s.permissions.Draw(screen, content, contentFocused)
+	case tabMemory:
+		s.memory.Draw(screen, content, contentFocused)
 	case tabSystem:
 		s.system.Draw(screen, content, contentFocused)
 	}

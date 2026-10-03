@@ -24,7 +24,7 @@ func newDeveloperAgent(fs *vfs.VFS) (*agent.Agent, error) {
 			return sys
 		}),
 		agent.WithTools(file.Tools(fs)...),
-		agent.WithToolNames("bash", "webfetch", "websearch", "todoread", "todowrite"),
+		agent.WithToolNames("bash", "webfetch", "websearch", "todoread", "todowrite", "mem-search", "mem-read"),
 		agent.WithMiddlewareNames("loop-detector", "redaction", "retry", "permission", "compaction"),
 	)
 

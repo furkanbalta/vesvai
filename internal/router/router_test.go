@@ -186,7 +186,6 @@ func TestRouterDecisionStateHasNoModelList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// models live only in the choice options, not in the state text
 	if strings.Contains(dec.gotReq.State, "prov-a/a-1") || strings.Contains(dec.gotReq.State, "Available models") {
 		t.Fatalf("state must not list models:\n%s", dec.gotReq.State)
 	}
