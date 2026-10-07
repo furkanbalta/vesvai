@@ -3,7 +3,7 @@ package connect
 import (
 	"context"
 
-	"github.com/vesvai/vesvai/internal/core/config"
+	"github.com/peggco/pegg/internal/core/config"
 )
 
 func (c *Connector) registerCompactionMemorySettings() {

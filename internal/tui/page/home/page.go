@@ -7,10 +7,10 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 
-	"github.com/vesvai/vesvai/internal/llm"
-	"github.com/vesvai/vesvai/internal/tui/components"
-	"github.com/vesvai/vesvai/internal/tui/layout"
-	"github.com/vesvai/vesvai/internal/tui/styles"
+	"github.com/peggco/pegg/internal/llm"
+	"github.com/peggco/pegg/internal/tui/components"
+	"github.com/peggco/pegg/internal/tui/layout"
+	"github.com/peggco/pegg/internal/tui/styles"
 )
 
 type focusTarget int
@@ -77,7 +77,7 @@ var defaultHints = []string{
 	"use '@' to mention files, folders, or agents",
 	"use '/' to run a skill",
 	"use '/init' to create an AGENTS.md for this project",
-	"use '/rule' to save a rule Vesvai always follows",
+	"use '/rule' to save a rule Pegg always follows",
 	"use '/skillify' to turn this session into a reusable skill",
 	"use '/review' to review a pull request",
 	"use '/batch' to change many files at once",

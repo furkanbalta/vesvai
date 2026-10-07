@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vesvai/vesvai/internal/core/event"
+	"github.com/peggco/pegg/internal/core/event"
 )
 
 func TestParseBlockHeader(t *testing.T) {

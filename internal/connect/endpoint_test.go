@@ -3,7 +3,7 @@ package connect_test
 import (
 	"testing"
 
-	"github.com/vesvai/vesvai/internal/connect"
+	"github.com/peggco/pegg/internal/connect"
 )
 
 func TestEndpointAppliesToken(t *testing.T) {

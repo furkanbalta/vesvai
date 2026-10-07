@@ -5,8 +5,8 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 
-	"github.com/vesvai/vesvai/internal/core/hook"
-	"github.com/vesvai/vesvai/internal/tui/components"
+	"github.com/peggco/pegg/internal/core/hook"
+	"github.com/peggco/pegg/internal/tui/components"
 )
 
 func TestOnSubmitTransform(t *testing.T) {

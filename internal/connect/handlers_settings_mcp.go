@@ -4,8 +4,8 @@ import (
 	"context"
 	"sort"
 
-	"github.com/vesvai/vesvai/internal/core/config"
-	"github.com/vesvai/vesvai/internal/mcp"
+	"github.com/peggco/pegg/internal/core/config"
+	"github.com/peggco/pegg/internal/mcp"
 )
 
 func (c *Connector) registerMCPSkillRulePluginSettings() {

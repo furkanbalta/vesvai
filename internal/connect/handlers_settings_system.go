@@ -4,8 +4,8 @@ import (
 	"context"
 	"runtime"
 
-	"github.com/vesvai/vesvai/internal/core/config"
-	"github.com/vesvai/vesvai/internal/core/update"
+	"github.com/peggco/pegg/internal/core/config"
+	"github.com/peggco/pegg/internal/core/update"
 )
 
 func (c *Connector) registerSystemMethods() {
@@ -44,7 +44,7 @@ func (c *Connector) handleUpdateCheck(ctx context.Context, _ *Request) (any, err
 }
 
 func (c *Connector) handleUpdateApply(ctx context.Context, _ *Request) (any, error) {
-	if err := c.requireConfirm("install a Vesvai update", "system.update"); err != nil {
+	if err := c.requireConfirm("install a Pegg update", "system.update"); err != nil {
 		return nil, err
 	}
 	if err := update.UpdateToLatest(ctx); err != nil {
@@ -52,5 +52,5 @@ func (c *Connector) handleUpdateApply(ctx context.Context, _ *Request) (any, err
 	}
 	Audit("system.update.apply", nil)
 	c.emit(eventSettings, "", "", map[string]any{"group": "system", "updated": true})
-	return map[string]any{"updated": true, "note": "restart Vesvai to use the new version"}, nil
+	return map[string]any{"updated": true, "note": "restart Pegg to use the new version"}, nil
 }

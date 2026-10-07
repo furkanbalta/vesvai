@@ -3,7 +3,7 @@ package connect
 import (
 	json "github.com/goccy/go-json"
 
-	"github.com/vesvai/vesvai/internal/llm"
+	"github.com/peggco/pegg/internal/llm"
 )
 
 const ProtocolVersion = 1
@@ -97,7 +97,7 @@ type HelloPayload struct {
 	DeviceID        string   `json:"device_id"`
 	DeviceName      string   `json:"device_name"`
 	PublicKey       string   `json:"public_key"`
-	VesvaiVersion   string   `json:"vesvai_version"`
+	PeggVersion     string   `json:"pegg_version"`
 	Workspace       string   `json:"workspace"`
 	Capabilities    []string `json:"capabilities"`
 	Nonce           string   `json:"nonce"`

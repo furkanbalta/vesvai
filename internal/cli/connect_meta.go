@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/vesvai/vesvai/internal/connect"
-	"github.com/vesvai/vesvai/internal/core/config"
+	"github.com/peggco/pegg/internal/connect"
+	"github.com/peggco/pegg/internal/core/config"
 )
 
 func (c *CLI) newConnectLoginCommand() *cobra.Command {
@@ -14,7 +14,7 @@ func (c *CLI) newConnectLoginCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "login [token]",
-		Short: "Save a pairing token so `vesvai connect` runs without arguments",
+		Short: "Save a pairing token so `pegg connect` runs without arguments",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			argToken := ""
@@ -59,7 +59,7 @@ device identity (a new one is generated on the next connect).`,
 				}
 				fmt.Fprintln(out, "device identity removed (a new one is generated on the next connect)")
 			} else {
-				fmt.Fprintln(out, "device identity kept — run `vesvai connect <token>` with a new token to reconnect")
+				fmt.Fprintln(out, "device identity kept — run `pegg connect <token>` with a new token to reconnect")
 			}
 			return nil
 		},
@@ -85,7 +85,7 @@ func (c *CLI) newConnectPairCommand(deviceName string) *cobra.Command {
 			fmt.Fprintf(out, "Public key:  %s\n", id.PublicKey)
 			fmt.Fprintf(out, "Relay URL:   %s\n\n", relayOrEmpty(cc.RelayURL))
 			fmt.Fprintln(out, "Create a pairing token on the website (Agents → Connect a device), then run:")
-			fmt.Fprintln(out, "    vesvai connect <token>")
+			fmt.Fprintln(out, "    pegg connect <token>")
 			return nil
 		},
 	}
@@ -169,7 +169,7 @@ func relayOrEmpty(s string) string {
 
 func tokenStatus(token string) string {
 	if token == "" {
-		return "(none — run `vesvai connect <token>`)"
+		return "(none — run `pegg connect <token>`)"
 	}
 	return connect.MaskToken(token) + " (saved)"
 }

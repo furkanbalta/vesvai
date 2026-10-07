@@ -25,7 +25,7 @@ func (c *Connector) requireConfirm(action, detail string) error {
 	confirmMu.Lock()
 	defer confirmMu.Unlock()
 
-	fmt.Fprintf(os.Stderr, "\nvesvai connect: a remote client requests to %s (%s).\nApprove? [y/N]: ", action, detail)
+	fmt.Fprintf(os.Stderr, "\npegg connect: a remote client requests to %s (%s).\nApprove? [y/N]: ", action, detail)
 	line, _ := bufio.NewReader(os.Stdin).ReadString('\n')
 	line = strings.TrimSpace(strings.ToLower(line))
 	ok := line == "y" || line == "yes"

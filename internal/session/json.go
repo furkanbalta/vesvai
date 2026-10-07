@@ -2,7 +2,6 @@ package session
 
 import (
 	"fmt"
-	json "github.com/goccy/go-json"
 	"os"
 	"path/filepath"
 	"sort"
@@ -10,8 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vesvai/vesvai/internal/core/config"
-	"github.com/vesvai/vesvai/internal/utils/query"
+	json "github.com/goccy/go-json"
+
+	"github.com/peggco/pegg/internal/core/config"
+	"github.com/peggco/pegg/internal/utils/query"
 )
 
 const DriverJSON = "json"

@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/vesvai/vesvai/internal/agent"
-	"github.com/vesvai/vesvai/internal/core/event"
+	"github.com/peggco/pegg/internal/agent"
+	"github.com/peggco/pegg/internal/core/event"
 )
 
 const topicAgentAsk = agent.TopicAgentAsk

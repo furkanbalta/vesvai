@@ -3,12 +3,12 @@ package planner
 import (
 	"fmt"
 
-	"github.com/vesvai/vesvai/internal/agent"
-	"github.com/vesvai/vesvai/internal/agent/agents"
-	_ "github.com/vesvai/vesvai/internal/builtin/middlewares"
-	"github.com/vesvai/vesvai/internal/builtin/tools/file"
-	"github.com/vesvai/vesvai/internal/builtin/tools/plan"
-	"github.com/vesvai/vesvai/internal/vfs"
+	"github.com/peggco/pegg/internal/agent"
+	"github.com/peggco/pegg/internal/agent/agents"
+	_ "github.com/peggco/pegg/internal/builtin/middlewares"
+	"github.com/peggco/pegg/internal/builtin/tools/file"
+	"github.com/peggco/pegg/internal/builtin/tools/plan"
+	"github.com/peggco/pegg/internal/vfs"
 )
 
 const plansScope = vfs.PlansDir

@@ -1,12 +1,12 @@
 package config
 
 const (
-	AppName    = "vesvai"
+	AppName    = "pegg"
 	AppVersion = "0.1.4"
-	AppUrl     = "https://github.com/vesvai/vesvai"
+	AppUrl     = "https://github.com/peggco/pegg"
 
-	GlobalConfigDirName  = ".vesvai"
-	GlobalConfigFileName = "vesvai.json"
+	GlobalConfigDirName  = ".pegg"
+	GlobalConfigFileName = "pegg.json"
 
-	ProjectConfigDirName = ".vesvai"
+	ProjectConfigDirName = ".pegg"
 )

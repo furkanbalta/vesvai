@@ -9,21 +9,21 @@ import (
 
 	json "github.com/goccy/go-json"
 
-	"github.com/vesvai/vesvai/internal/builtin"
-	"github.com/vesvai/vesvai/internal/core/cache"
-	"github.com/vesvai/vesvai/internal/core/config"
-	"github.com/vesvai/vesvai/internal/core/event"
-	"github.com/vesvai/vesvai/internal/core/logger"
-	"github.com/vesvai/vesvai/internal/decision"
-	"github.com/vesvai/vesvai/internal/llm"
-	"github.com/vesvai/vesvai/internal/memory"
-	"github.com/vesvai/vesvai/internal/router"
-	"github.com/vesvai/vesvai/internal/session"
-	"github.com/vesvai/vesvai/internal/vfs"
+	"github.com/peggco/pegg/internal/builtin"
+	"github.com/peggco/pegg/internal/core/cache"
+	"github.com/peggco/pegg/internal/core/config"
+	"github.com/peggco/pegg/internal/core/event"
+	"github.com/peggco/pegg/internal/core/logger"
+	"github.com/peggco/pegg/internal/decision"
+	"github.com/peggco/pegg/internal/llm"
+	"github.com/peggco/pegg/internal/memory"
+	"github.com/peggco/pegg/internal/router"
+	"github.com/peggco/pegg/internal/session"
+	"github.com/peggco/pegg/internal/vfs"
 
-	_ "github.com/vesvai/vesvai/internal/decision/providers"
-	_ "github.com/vesvai/vesvai/internal/llm/drivers"
-	_ "github.com/vesvai/vesvai/internal/llm/providers"
+	_ "github.com/peggco/pegg/internal/decision/providers"
+	_ "github.com/peggco/pegg/internal/llm/drivers"
+	_ "github.com/peggco/pegg/internal/llm/providers"
 )
 
 type Options struct {
@@ -286,7 +286,7 @@ func (e *Engine) openSessionStore() (session.Store, error) {
 	case e.opts.SessionDir != "":
 		return session.NewJSONStoreAt(e.opts.SessionDir)
 	default:
-		dir, err := os.MkdirTemp("", "vesvai-sessions")
+		dir, err := os.MkdirTemp("", "pegg-sessions")
 		if err != nil {
 			return nil, fmt.Errorf("sdk: create temp session dir: %w", err)
 		}
