@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/vesvai/vesvai/internal/agent/reminder"
-	"github.com/vesvai/vesvai/internal/agent/tool"
-	"github.com/vesvai/vesvai/internal/llm"
+	"github.com/peggco/pegg/internal/agent/reminder"
+	"github.com/peggco/pegg/internal/agent/tool"
+	"github.com/peggco/pegg/internal/llm"
 )
 
 type runState struct {

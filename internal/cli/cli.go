@@ -7,22 +7,22 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/vesvai/vesvai/internal/agent/agents"
-	"github.com/vesvai/vesvai/internal/core/cache"
-	"github.com/vesvai/vesvai/internal/core/config"
-	"github.com/vesvai/vesvai/internal/core/event"
-	"github.com/vesvai/vesvai/internal/core/hook"
-	"github.com/vesvai/vesvai/internal/core/logger"
-	"github.com/vesvai/vesvai/internal/decision"
-	"github.com/vesvai/vesvai/internal/llm"
-	"github.com/vesvai/vesvai/internal/lsp"
-	"github.com/vesvai/vesvai/internal/mcp"
-	"github.com/vesvai/vesvai/internal/memory"
-	"github.com/vesvai/vesvai/internal/plugin"
-	"github.com/vesvai/vesvai/internal/session"
-	"github.com/vesvai/vesvai/internal/tui"
-	"github.com/vesvai/vesvai/internal/tui/page/settings"
-	"github.com/vesvai/vesvai/internal/vfs"
+	"github.com/peggco/pegg/internal/agent/agents"
+	"github.com/peggco/pegg/internal/core/cache"
+	"github.com/peggco/pegg/internal/core/config"
+	"github.com/peggco/pegg/internal/core/event"
+	"github.com/peggco/pegg/internal/core/hook"
+	"github.com/peggco/pegg/internal/core/logger"
+	"github.com/peggco/pegg/internal/decision"
+	"github.com/peggco/pegg/internal/llm"
+	"github.com/peggco/pegg/internal/lsp"
+	"github.com/peggco/pegg/internal/mcp"
+	"github.com/peggco/pegg/internal/memory"
+	"github.com/peggco/pegg/internal/plugin"
+	"github.com/peggco/pegg/internal/session"
+	"github.com/peggco/pegg/internal/tui"
+	"github.com/peggco/pegg/internal/tui/page/settings"
+	"github.com/peggco/pegg/internal/vfs"
 )
 
 type CLI struct {
@@ -92,8 +92,8 @@ func New(bus event.Bus, cfg *config.Config, log *logger.Logger, vfs *vfs.VFS, se
 
 func newRootCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "vesvai",
-		Short: "vesvai command line interface",
+		Use:   "pegg",
+		Short: "pegg command line interface",
 		Args:  cobra.ArbitraryArgs,
 	}
 }

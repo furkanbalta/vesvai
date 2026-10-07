@@ -111,7 +111,7 @@ func (id *Identity) Sign(msg []byte) string {
 }
 
 func helloMessage(deviceID, nonce string, ts int64) []byte {
-	return []byte("vesvai-connect-hello:" + deviceID + ":" + nonce + ":" + strconv.FormatInt(ts, 10))
+	return []byte("pegg-connect-hello:" + deviceID + ":" + nonce + ":" + strconv.FormatInt(ts, 10))
 }
 
 func ResetIdentity() error {

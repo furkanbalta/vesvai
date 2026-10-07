@@ -7,14 +7,14 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 
-	"github.com/vesvai/vesvai/internal/agent/middlewares"
-	"github.com/vesvai/vesvai/internal/agent/tools"
-	"github.com/vesvai/vesvai/internal/builtin/middlewares/permission"
-	"github.com/vesvai/vesvai/internal/core/config"
-	"github.com/vesvai/vesvai/internal/decision"
-	"github.com/vesvai/vesvai/internal/tui/components"
-	"github.com/vesvai/vesvai/internal/tui/layout"
-	"github.com/vesvai/vesvai/internal/tui/styles"
+	"github.com/peggco/pegg/internal/agent/middlewares"
+	"github.com/peggco/pegg/internal/agent/tools"
+	"github.com/peggco/pegg/internal/builtin/middlewares/permission"
+	"github.com/peggco/pegg/internal/core/config"
+	"github.com/peggco/pegg/internal/decision"
+	"github.com/peggco/pegg/internal/tui/components"
+	"github.com/peggco/pegg/internal/tui/layout"
+	"github.com/peggco/pegg/internal/tui/styles"
 )
 
 type permPreset int

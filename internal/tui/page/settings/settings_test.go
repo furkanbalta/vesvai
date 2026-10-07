@@ -5,10 +5,10 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 
-	"github.com/vesvai/vesvai/internal/llm"
-	"github.com/vesvai/vesvai/internal/tui/components"
-	"github.com/vesvai/vesvai/internal/tui/layout"
-	"github.com/vesvai/vesvai/internal/tui/styles"
+	"github.com/peggco/pegg/internal/llm"
+	"github.com/peggco/pegg/internal/tui/components"
+	"github.com/peggco/pegg/internal/tui/layout"
+	"github.com/peggco/pegg/internal/tui/styles"
 )
 
 func drawSettings(t *testing.T, w, h int, s *Settings) {

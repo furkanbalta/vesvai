@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/vesvai/vesvai/internal/core/event"
-	"github.com/vesvai/vesvai/internal/core/logger"
-	"github.com/vesvai/vesvai/internal/llm"
-	"github.com/vesvai/vesvai/internal/utils/query"
+	"github.com/peggco/pegg/internal/core/event"
+	"github.com/peggco/pegg/internal/core/logger"
+	"github.com/peggco/pegg/internal/llm"
+	"github.com/peggco/pegg/internal/utils/query"
 )
 
 type Manager struct {

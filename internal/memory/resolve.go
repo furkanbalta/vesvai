@@ -3,9 +3,9 @@ package memory
 import (
 	"errors"
 
-	"github.com/vesvai/vesvai/internal/core/config"
-	decisionapi "github.com/vesvai/vesvai/internal/decision"
-	"github.com/vesvai/vesvai/internal/llm"
+	"github.com/peggco/pegg/internal/core/config"
+	decisionapi "github.com/peggco/pegg/internal/decision"
+	"github.com/peggco/pegg/internal/llm"
 )
 
 var (

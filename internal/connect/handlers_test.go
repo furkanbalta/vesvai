@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/vesvai/vesvai/internal/core/config"
+	"github.com/peggco/pegg/internal/core/config"
 )
 
 func TestSettingsHandlersSmoke(t *testing.T) {

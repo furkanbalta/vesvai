@@ -3,8 +3,8 @@ package settings
 import (
 	"github.com/gdamore/tcell/v2"
 
-	"github.com/vesvai/vesvai/internal/tui/components"
-	"github.com/vesvai/vesvai/internal/tui/layout"
+	"github.com/peggco/pegg/internal/tui/components"
+	"github.com/peggco/pegg/internal/tui/layout"
 )
 
 type listModal struct {

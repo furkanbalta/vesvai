@@ -1,8 +1,8 @@
 package connect
 
 import (
-	"github.com/vesvai/vesvai/internal/agent"
-	"github.com/vesvai/vesvai/internal/llm"
+	"github.com/peggco/pegg/internal/agent"
+	"github.com/peggco/pegg/internal/llm"
 )
 
 type runStartedPayload struct {

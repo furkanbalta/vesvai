@@ -15,7 +15,7 @@ func (c *Connector) handshake(ctx context.Context, conn *websocket.Conn) error {
 		DeviceID:        c.identity.DeviceID,
 		DeviceName:      c.identity.Name,
 		PublicKey:       c.identity.PublicKey,
-		VesvaiVersion:   c.deps.Version,
+		PeggVersion:     c.deps.Version,
 		Workspace:       c.workspace(),
 		Capabilities:    c.capabilities(),
 		Nonce:           nonce,

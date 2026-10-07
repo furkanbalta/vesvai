@@ -1,16 +1,16 @@
 <div align="center">
 
-# Vesvai
+# Pegg
 
 **An AI coding agent that speaks your language, runs your way, and stays out of your way.**
 
-[Docs](https://docs.vesv.ai) · [GitHub](https://github.com/vesvai/vesvai) · [Discussions](https://github.com/vesvai/vesvai/discussions)
+[Docs](https://docs.pegg.dev) · [GitHub](https://github.com/peggco/pegg) · [Discussions](https://github.com/peggco/pegg/discussions)
 
 </div>
 
 ---
 
-Vesvai is not another chat wrapper. It's a full agent engine written in Go — provider-agnostic, sandboxed, and designed to work the way you already work. No hosted service, no vendor lock-in, no magic that breaks when you look away.
+Pegg is not another chat wrapper. It's a full agent engine written in Go — provider-agnostic, sandboxed, and designed to work the way you already work. No hosted service, no vendor lock-in, no magic that breaks when you look away.
 
 Run it in your terminal. Run it headless in CI. Embed it in your own tool. Point it at any LLM provider you want. The agent reads your code, edits files, runs commands, searches the web, and delegates to specialist subagents — all while you stay in control.
 
@@ -22,25 +22,25 @@ Run it in your terminal. Run it headless in CI. Embed it in your own tool. Point
 <tr>
 <td width="50%" valign="top">
 
-### `vesvai` (TUI)
+### `pegg` (TUI)
 
 The full experience. A terminal UI built on tcell with streaming markdown, syntax-highlighted diffs, live context/cost tracking, and 26 themes.
 
 ```bash
-curl -fsSL https://vesv.ai/install | bash
-vesvai
+curl -fsSL https://pegg.dev/install | bash
+pegg
 ```
 
 </td>
 <td width="50%" valign="top">
 
-### `vesvai run` (Headless)
+### `pegg run` (Headless)
 
 Pipe it. Script it. Drop it in a GitHub Action. Same engine, zero interaction.
 
 ```bash
-vesvai run "Review this PR for bugs"
-git diff main | vesvai "Summarize changes"
+pegg run "Review this PR for bugs"
+git diff main | pegg "Summarize changes"
 ```
 
 </td>
@@ -53,7 +53,7 @@ git diff main | vesvai "Summarize changes"
 REST endpoint with SSE streaming. Build dashboards, Slack bots, or your own frontend.
 
 ```bash
-vesvai serve --port 8080
+pegg serve --port 8080
 curl -N http://localhost:8080/v1/chat -d '{"message":"hello"}'
 ```
 
@@ -77,7 +77,7 @@ resp, _ := eng.Chat(ctx, sdk.ChatRequest{Input: "Fix the leak"})
 
 ## What It Actually Does
 
-**Reads your project.** Vesvai builds a mental model of your codebase — file structure, dependencies, conventions. It references code with `file:line` precision.
+**Reads your project.** Pegg builds a mental model of your codebase — file structure, dependencies, conventions. It references code with `file:line` precision.
 
 **Edits with diffs.** Every change shows as a reviewable diff. Revert what you don't like. Sessions track everything so you can rewind.
 
@@ -87,13 +87,13 @@ resp, _ := eng.Chat(ctx, sdk.ChatRequest{Input: "Fix the leak"})
 
 **Delegates to specialists.** The orchestrator spawns subagents (explorer, planner, developer) that run concurrently with their own tool access and context. They persist across turns.
 
-**Stays sandboxed.** A virtual filesystem respects `.gitignore` and `.vesvaignore`. The agent can't escape your project. Five permission modes, an LLM judge for risky ops, and double-`Esc` emergency stop.
+**Stays sandboxed.** A virtual filesystem respects `.gitignore` and `.peggignore`. The agent can't escape your project. Five permission modes, an LLM judge for risky ops, and double-`Esc` emergency stop.
 
 ---
 
 ## 32 Providers. Your Keys. No Proxy.
 
-Vesvai talks directly to LLM APIs using your credentials. Nothing goes through a hosted service.
+Pegg talks directly to LLM APIs using your credentials. Nothing goes through a hosted service.
 
 ```
 anthropic   openai        google       deepseek     groq
@@ -114,11 +114,11 @@ Point it at a local model. Point it at a corporate gateway. Point it at whatever
 | Skill | MCP Server | Plugin |
 |-------|------------|--------|
 | Markdown rules the agent loads on demand | Connect to databases, APIs, cloud services | Go hooks for logging, auditing, custom tools |
-| `.vesvai/skills/` or project-level | Community servers or ask Vesvai to build one | WordPress-style |
+| `.pegg/skills/` or project-level | Community servers or ask Pegg to build one | WordPress-style |
 
 </div>
 
-**Skills** are markdown files with frontmatter. Drop them in `.vesvai/skills/` and the agent picks them up:
+**Skills** are markdown files with frontmatter. Drop them in `.pegg/skills/` and the agent picks them up:
 
 ```markdown
 ---
@@ -137,28 +137,28 @@ Always use table-driven tests. Never use external test fixtures.
 
 ```bash
 # Install
-curl -fsSL https://vesv.ai/install | bash
+curl -fsSL https://pegg.dev/install | bash
 
 # Add your first provider
-vesvai login
+pegg login
 
 # Run it
-vesvai
+pegg
 ```
 
 Or with npm:
 
 ```bash
-npm i -g vesvai
+npm i -g pegg
 ```
 
 Or build from source:
 
 ```bash
-git clone https://github.com/vesvai/vesvai
-cd vesvai
+git clone https://github.com/peggco/pegg
+cd pegg
 make build
-./bin/vesvai
+./bin/pegg
 ```
 
 ---

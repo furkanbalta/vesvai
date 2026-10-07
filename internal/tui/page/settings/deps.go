@@ -1,17 +1,17 @@
 package settings
 
 import (
-	"github.com/vesvai/vesvai/internal/agent"
-	"github.com/vesvai/vesvai/internal/core/cache"
-	"github.com/vesvai/vesvai/internal/core/config"
-	"github.com/vesvai/vesvai/internal/core/event"
-	"github.com/vesvai/vesvai/internal/decision"
-	"github.com/vesvai/vesvai/internal/llm"
-	"github.com/vesvai/vesvai/internal/mcp"
-	"github.com/vesvai/vesvai/internal/memory"
-	"github.com/vesvai/vesvai/internal/plugin"
-	"github.com/vesvai/vesvai/internal/session"
-	"github.com/vesvai/vesvai/internal/vfs"
+	"github.com/peggco/pegg/internal/agent"
+	"github.com/peggco/pegg/internal/core/cache"
+	"github.com/peggco/pegg/internal/core/config"
+	"github.com/peggco/pegg/internal/core/event"
+	"github.com/peggco/pegg/internal/decision"
+	"github.com/peggco/pegg/internal/llm"
+	"github.com/peggco/pegg/internal/mcp"
+	"github.com/peggco/pegg/internal/memory"
+	"github.com/peggco/pegg/internal/plugin"
+	"github.com/peggco/pegg/internal/session"
+	"github.com/peggco/pegg/internal/vfs"
 )
 
 type Deps struct {

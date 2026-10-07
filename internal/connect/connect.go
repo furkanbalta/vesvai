@@ -11,18 +11,18 @@ import (
 
 	"github.com/coder/websocket"
 
-	"github.com/vesvai/vesvai/internal/core/cache"
-	"github.com/vesvai/vesvai/internal/core/config"
-	"github.com/vesvai/vesvai/internal/core/event"
-	"github.com/vesvai/vesvai/internal/core/logger"
-	"github.com/vesvai/vesvai/internal/decision"
-	"github.com/vesvai/vesvai/internal/llm"
-	"github.com/vesvai/vesvai/internal/lsp"
-	"github.com/vesvai/vesvai/internal/mcp"
-	"github.com/vesvai/vesvai/internal/memory"
-	"github.com/vesvai/vesvai/internal/plugin"
-	"github.com/vesvai/vesvai/internal/session"
-	"github.com/vesvai/vesvai/internal/vfs"
+	"github.com/peggco/pegg/internal/core/cache"
+	"github.com/peggco/pegg/internal/core/config"
+	"github.com/peggco/pegg/internal/core/event"
+	"github.com/peggco/pegg/internal/core/logger"
+	"github.com/peggco/pegg/internal/decision"
+	"github.com/peggco/pegg/internal/llm"
+	"github.com/peggco/pegg/internal/lsp"
+	"github.com/peggco/pegg/internal/mcp"
+	"github.com/peggco/pegg/internal/memory"
+	"github.com/peggco/pegg/internal/plugin"
+	"github.com/peggco/pegg/internal/session"
+	"github.com/peggco/pegg/internal/vfs"
 )
 
 const (
@@ -144,7 +144,7 @@ func (c *Connector) Stop() {
 
 func (c *Connector) Run(ctx context.Context) error {
 	if c.cfg.RelayURL == "" {
-		return errors.New("connect: relay_url is not configured (set connect.relay_url or VESVAI_CONNECT_RELAY)")
+		return errors.New("connect: relay_url is not configured (set connect.relay_url or PEGG_CONNECT_RELAY)")
 	}
 	if err := c.validateRelayURL(); err != nil {
 		return err

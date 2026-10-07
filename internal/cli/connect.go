@@ -14,13 +14,13 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"github.com/vesvai/vesvai/internal/connect"
-	"github.com/vesvai/vesvai/internal/core/config"
+	"github.com/peggco/pegg/internal/connect"
+	"github.com/peggco/pegg/internal/core/config"
 )
 
 type tokenSource int
 
-const envConnectRelay = "VESVAI_CONNECT_RELAY"
+const envConnectRelay = "PEGG_CONNECT_RELAY"
 
 const (
 	tokenFromArgument tokenSource = iota
@@ -46,7 +46,7 @@ func resolveConnectToken(argToken, flagToken, savedToken string, interactive boo
 	}
 	if !interactive {
 		return "", tokenFromConfig, errors.New(
-			"connect: no pairing token — run `vesvai connect <token>` (create one on the website under Agents → Connect a device)")
+			"connect: no pairing token — run `pegg connect <token>` (create one on the website under Agents → Connect a device)")
 	}
 	token, err := prompt()
 	if err != nil {
@@ -89,11 +89,11 @@ machine.
 
 Only a pairing token is needed — create one on the website under
 Agents → Connect a device. The token is saved to the config on first use, so
-later runs just need "vesvai connect"; use "vesvai connect logout" to forget it.
+later runs just need "pegg connect"; use "pegg connect logout" to forget it.
 
 The relay endpoint is built in (connect.relay_url overrides it). The daemon
 authenticates with a local Ed25519 device identity stored at
-~/.vesvai/connect/device.json and reconnects automatically.`,
+~/.pegg/connect/device.json and reconnects automatically.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			argToken := ""
@@ -231,7 +231,7 @@ func (c *CLI) runConnect(out io.Writer, argToken, flagToken string, insecure, au
 		return fmt.Errorf("connect: save config: %w", err)
 	}
 	if !source.isSaved() {
-		fmt.Fprintf(out, "pairing token saved to %s — future runs only need `vesvai connect`\n", configFileLabel())
+		fmt.Fprintf(out, "pairing token saved to %s — future runs only need `pegg connect`\n", configFileLabel())
 	}
 
 	conn, err := connect.New(c.connectDeps(), cc)
@@ -241,7 +241,7 @@ func (c *CLI) runConnect(out io.Writer, argToken, flagToken string, insecure, au
 	defer conn.Stop()
 
 	id := conn.Identity()
-	fmt.Fprintf(out, "vesvai connect: device %s (%s)\n", id.DeviceID, id.Name)
+	fmt.Fprintf(out, "pegg connect: device %s (%s)\n", id.DeviceID, id.Name)
 	fmt.Fprintf(out, "  public key: %s\n", id.PublicKey)
 	fmt.Fprintf(out, "  relay:      %s\n", cc.RelayURL)
 	fmt.Fprintf(out, "  token:      %s\n", connect.MaskToken(cc.Token))
@@ -275,7 +275,7 @@ func (c *CLI) runConnectLogin(out io.Writer, argToken, flagToken string) error {
 		fmt.Fprintf(out, "pairing token saved: %s\n", connect.MaskToken(token))
 	}
 	fmt.Fprintf(out, "relay: %s\n", cc.RelayURL)
-	fmt.Fprintln(out, "run `vesvai connect` to start the relay")
+	fmt.Fprintln(out, "run `pegg connect` to start the relay")
 	return nil
 }
 
@@ -283,7 +283,7 @@ func configFileLabel() string {
 	if path, err := config.GetConfigPath(config.GlobalConfigFileName); err == nil {
 		return path
 	}
-	return "~/.vesvai/" + config.GlobalConfigFileName
+	return "~/.pegg/" + config.GlobalConfigFileName
 }
 
 func stdinInteractive() bool {

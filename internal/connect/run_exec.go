@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vesvai/vesvai/internal/agent"
-	"github.com/vesvai/vesvai/internal/llm"
+	"github.com/peggco/pegg/internal/agent"
+	"github.com/peggco/pegg/internal/llm"
 )
 
 func (m *runManager) execute(ctx context.Context, r *run, orch *agent.Agent, message string, history []llm.Message) {

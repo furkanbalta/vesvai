@@ -1,4 +1,4 @@
-module github.com/vesvai/vesvai
+module github.com/peggco/pegg
 
 go 1.26.5
 
