@@ -85,6 +85,24 @@ type PluginConfig struct {
 	Exclude []string `json:"exclude,omitempty"`
 }
 
+type ConnectConfig struct {
+	Enabled             bool     `json:"enabled"`
+	RelayURL            string   `json:"relay_url,omitempty"`
+	Token               string   `json:"token,omitempty"`
+	Insecure            bool     `json:"insecure,omitempty"`
+	AutoApprove         bool     `json:"auto_approve,omitempty"`
+	MaxConcurrency      int      `json:"max_concurrency,omitempty"`
+	AllowedMethods      []string `json:"allowed_methods,omitempty"`
+	DeviceName          string   `json:"device_name,omitempty"`
+	ResponseTimeoutSecs int      `json:"response_timeout_secs,omitempty"`
+}
+
+const DefaultConnectRelayURL = "ws://connect.vesv.ai"
+
+const DefaultConnectConcurrency = 4
+
+const DefaultConnectResponseTimeoutSecs = 180
+
 type CompactionConfig struct {
 	Enabled            bool     `json:"enabled"`
 	Strategy           []string `json:"strategy"`
@@ -189,6 +207,7 @@ type Config struct {
 	SmartRouter     *SmartRouterConfig              `json:"smart_router,omitempty"`
 	Memory          *MemoryConfig                   `json:"memory,omitempty"`
 	Plugins         PluginConfig                    `json:"plugins,omitempty"`
+	Connect         *ConnectConfig                  `json:"connect,omitempty"`
 	MCPServers      map[string]MCPServerConfig      `json:"mcp_servers,omitempty"`
 	LanguageServers map[string]LanguageServerConfig `json:"language_servers,omitempty"`
 }
@@ -239,6 +258,10 @@ func DefaultConfig() *Config {
 		},
 		Plugins: PluginConfig{
 			Enabled: true,
+		},
+		Connect: &ConnectConfig{
+			Enabled:        false,
+			MaxConcurrency: DefaultConnectConcurrency,
 		},
 		Compaction: &CompactionConfig{
 			Enabled:            true,
@@ -463,6 +486,15 @@ func UpsertMemory(cfg *MemoryConfig) error {
 		return err
 	}
 	c.Memory = cfg
+	return Save(c)
+}
+
+func UpsertConnect(cfg *ConnectConfig) error {
+	c, err := Load()
+	if err != nil {
+		return err
+	}
+	c.Connect = cfg
 	return Save(c)
 }
 

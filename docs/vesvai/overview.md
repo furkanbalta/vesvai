@@ -49,6 +49,12 @@ language servers — all inside a sandboxed workspace.
     observations, a librarian curates them, and future runs get a budget-bounded
     memory panel of what was done, decided, and learned.
 
+- [:lucide-monitor-smartphone:{ .lg } **Connect to the web**](features/connect.md)
+
+    Pair the app on your machine with the Vesvai website and chat with your agent
+    from a browser — sessions, settings, and tools stay local, and only a one-time
+    pairing token is needed.
+
 - [:lucide-puzzle:{ .lg } **Extensible**](configurations/skills.md)
 
     Skills, rules, MCP servers, LSP servers, custom tools, middlewares, providers,

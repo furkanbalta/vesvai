@@ -132,6 +132,41 @@ vesvai login --provider anthropic --api-key sk-ant-...
 The provider's model list is fetched before the config is saved, so a login only
 succeeds when the credentials work.
 
+## `vesvai connect`
+
+Connect this machine's agent to a website backend so you can chat with it from a
+browser. Only a pairing token is needed — create one on the website under
+**Agents → Connect a device**. The full walkthrough lives in
+[Connect](../features/connect.md).
+
+```bash
+vesvai connect <token>     # first run: connect and remember the token
+vesvai connect             # every run after that
+```
+
+| Subcommand | Description |
+|---|---|
+| `vesvai connect login [token]` | Save a pairing token without connecting (masked prompt when omitted) |
+| `vesvai connect logout` | Forget the saved token (`--all` also resets the device identity) |
+| `vesvai connect status` | Relay, saved token (masked), and device identity |
+| `vesvai connect whoami` | This machine's device ID and public key |
+| `vesvai connect methods` | List every method the website may call |
+| `vesvai connect pair` | Print the device identity to register with a backend |
+
+| Flag | Description |
+|---|---|
+| `--token` | Pairing token (may also be passed as the argument) |
+| `--auto-approve` | Skip local confirmation for sensitive remote actions (not recommended) |
+| `--insecure` | Allow `ws://` to a non-loopback host (not recommended) |
+| `--device-name` | Human-friendly name for this device |
+| `--allowed-method` | Restrict methods the website may call (repeatable, supports `prefix*`) |
+| `--max-concurrency` | Maximum parallel runs (default from config) |
+| `--response-timeout` | Seconds a run may produce no output before it is failed |
+
+The relay endpoint is built into the app, so nothing but a token is needed; point a
+self-hosted website at `connect.relay_url` in `~/.vesvai/vesvai.json`. The pairing
+token is stored there too, and is only ever displayed masked.
+
 ## `vesvai providers`
 
 | Command | Description |

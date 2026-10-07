@@ -152,6 +152,7 @@ nav:
         - Sessions: vesvai/features/sessions.md
         - Permissions: vesvai/features/permissions.md
         - Notifications: vesvai/features/notifications.md
+        - Connect: vesvai/features/connect.md
   - Sdk:
       - Get Started: sdk/index.md
       - Chat: sdk/chat.md
