@@ -127,7 +127,6 @@ markdown_extensions:
 
 nav:
   - Home: https://pegg.dev
-  - Index: index.md
   - Pegg:
       - Overview: pegg/overview.md
       - Installation: pegg/installation.md
