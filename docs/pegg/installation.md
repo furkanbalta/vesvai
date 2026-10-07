@@ -29,10 +29,17 @@ are produced for Linux, macOS, and Windows on both `amd64` and `arm64`.
 === "npm"
 
     ```bash
-    npm i -g pegg
+    npm i -g @peggco/pegg
     ```
 
-    Installs the `pegg` binary globally via npm.
+    Installs the `pegg` binary globally via npm. 
+
+    - Pin a version: `PEGG_VERSION=v0.1.5 npm i -g @peggco/pegg`
+    - Skipped install scripts (`--ignore-scripts`, or pnpm blocking build
+      scripts) leave no binary; reinstall without them, or for pnpm run
+      `pnpm approve-builds`.
+    - npm 11+ may block scripts until approved:
+      `npm i -g --allow-scripts=@peggco/pegg`.
 
 === "Prebuilt binary"
 
