@@ -529,7 +529,7 @@ func TestSkillChipVisualWidthMatchesDraw(t *testing.T) {
 	in := NewInput()
 	in.InsertChip("go-development")
 	got := in.visualLineWidth("/go-development")
-	want := len("/go-development") // drawn as "/"+name
+	want := len("/go-development")
 	if got != want {
 		t.Errorf("visualLineWidth = %d, want %d (drawn width)", got, want)
 	}
