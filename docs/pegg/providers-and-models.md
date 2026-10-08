@@ -155,7 +155,7 @@ pegg providers add --driver openai --base-url http://localhost:11434/v1 --api-ke
 ## Managing providers
 
 ```bash
-pegg providers add --name anthropic --api-key [**REDACTED**] # add or replace a provider
+pegg providers add --name anthropic --api-key your-api-key # add or replace a provider
 pegg providers list                    # name, masked key, cached model count
 pegg providers refresh                 # re-fetch models for every provider
 pegg providers refresh --provider xai  # re-fetch one provider
