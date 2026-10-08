@@ -179,7 +179,7 @@ token is stored there too, and is only ever displayed masked.
 `pegg providers add` exposes every provider config field:
 
 ```bash
-pegg providers add --name anthropic --api-key [**REDACTED**]
+pegg providers add --name anthropic --api-key your-api-key
 pegg providers add --driver openai --base-url http://localhost:11434/v1 --api-key ollama
 ```
 
