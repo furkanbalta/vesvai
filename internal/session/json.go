@@ -212,6 +212,31 @@ func (s *JSONStore) TruncateAfter(sessionID, messageID string) ([]Message, error
 	return removed, nil
 }
 
+func (s *JSONStore) TruncateFrom(sessionID, messageID string) ([]Message, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	f, err := s.load(sessionID)
+	if err != nil {
+		return nil, err
+	}
+	idx := -1
+	for i, m := range f.Messages {
+		if m.ID == messageID {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		return nil, ErrMessageNotFound
+	}
+	removed := append([]Message(nil), f.Messages[idx:]...)
+	f.Messages = f.Messages[:idx]
+	if err := s.persist(f); err != nil {
+		return nil, err
+	}
+	return removed, nil
+}
+
 func (s *JSONStore) SaveSnapshot(snap Snapshot) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

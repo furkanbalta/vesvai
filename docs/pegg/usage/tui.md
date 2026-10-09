@@ -41,9 +41,11 @@ terminal, or explicitly with `pegg tui`.
 | ++ctrl+c++ / ++ctrl+q++ | Quit |
 | ++ctrl+t++ | Cycle to the next theme (saved to config) |
 | ++ctrl+p++ | Open Settings |
+| ++ctrl+shift+c++ | Copy the selected chat text (or input selection) |
 | ++esc++ | Interrupt (see below) |
 | ++tab++ | Toggle focus between the input and attachments (when attachments exist) |
 | Mouse wheel | Scroll the chat 3 lines |
+| Mouse drag | Select chat text (release to keep the selection) |
 | Mouse click | Activate the item under the cursor |
 
 ### Interrupting the agent
@@ -124,6 +126,29 @@ list that input modality.
 | Tool call | Card with name, enriched target (`read:path`, `bash:cmd`, ...), duration, expandable output |
 | Subagent | Card with status, live activity line, output preview, usage, and a **History** action |
 | Error | Bold red `✖ error: ...` |
+
+### Selecting and copying text
+
+Click and drag over any chat text to select it; release to keep the selection.
+Press ++ctrl+shift+c++ to copy the selection to the system clipboard (via the
+terminal's OSC 52 support). Card borders and padding are stripped from the copied
+text. If the input editor has a selection, ++ctrl+shift+c++ copies that instead.
+
+### User message menu
+
+Click a user message (without dragging) to open a small menu. Move the mouse
+over an option (or use the arrow keys) to highlight it.
+
+| Option | Action |
+|---|---|
+| Copy text | Copy the message text to the clipboard |
+| Revert message | Delete this message and every message after it, and put the message back into the input |
+| Fork message | Create a new session containing the messages *before* this one, switch to it, and put the message back into the input |
+
+A forked session is titled `<original title> - fork`. Revert keeps the same
+session; a snapshot of the removed messages is saved so it can be undone.
+Attachments on the message are restored into the attachment bar along with the
+text.
 
 ### Specialized tool cards
 

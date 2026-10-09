@@ -711,6 +711,22 @@ func TestInputVisualRowOfFollowsWordWrap(t *testing.T) {
 	}
 }
 
+func TestInputSetValue(t *testing.T) {
+	in := NewInput()
+	in.InsertRune('x')
+	in.SetValue("line1\nline2")
+	if in.Value() != "line1\nline2" {
+		t.Fatalf("Value = %q, want multiline", in.Value())
+	}
+	if in.Row() != 1 || in.Col() != 5 {
+		t.Fatalf("cursor = %d,%d, want 1,5", in.Row(), in.Col())
+	}
+	in.SetValue("")
+	if in.Value() != "" || in.Row() != 0 || in.Col() != 0 {
+		t.Fatalf("after empty SetValue: value=%q row=%d col=%d", in.Value(), in.Row(), in.Col())
+	}
+}
+
 func TestInputMoveUpDownFollowsWordWrap(t *testing.T) {
 	in := NewInput()
 	in.SetInnerWidth(10)

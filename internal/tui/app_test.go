@@ -468,3 +468,132 @@ func TestRewriteKeypadSequence(t *testing.T) {
 		t.Fatalf("rewriteKeypad = %q, want %q", got, want)
 	}
 }
+
+func newSessionApp(t *testing.T) (*App, *session.Manager) {
+	t.Helper()
+	t.Setenv("HOME", t.TempDir())
+	store, err := session.NewSQLiteStore()
+	if err != nil {
+		t.Fatalf("open session store: %v", err)
+	}
+	t.Cleanup(func() { store.Close() })
+	bus := event.New()
+	mgr := session.NewManager(store, bus, logger.New(logger.LevelDebug, discardHandler{}))
+	a := &App{screen: newTestScreen(t), deps: settings.Deps{Sessions: mgr, Bus: bus}}
+	a.build()
+	return a, mgr
+}
+
+func chatItemByText(items []*components.ChatItem, text string) *components.ChatItem {
+	for _, it := range items {
+		if it.Kind == components.ItemUser && it.Text == text {
+			return it
+		}
+	}
+	return nil
+}
+
+func TestAppRevertMessage(t *testing.T) {
+	a, mgr := newSessionApp(t)
+	dir, _ := os.Getwd()
+	sess, err := mgr.Create(session.CreateOptions{Title: "S", Provider: "p", Model: "m", ProjectDir: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = mgr.AppendMessage(sess.ID, llm.Message{Role: llm.RoleUser, Content: "first"})
+	_, _ = mgr.AppendMessage(sess.ID, llm.Message{Role: llm.RoleAssistant, Content: "hi"})
+	second, _ := mgr.AppendMessage(sess.ID, llm.Message{Role: llm.RoleUser, Content: "second"})
+	_, _ = mgr.AppendMessage(sess.ID, llm.Message{Role: llm.RoleAssistant, Content: "reply"})
+
+	info, ok := a.sessionInfoFor(sess.ID)
+	if !ok {
+		t.Fatal("session info not loaded")
+	}
+	a.activateSession(info)
+
+	target := chatItemByText(a.chat.Items(), "second")
+	if target == nil {
+		t.Fatal("second user message not found in chat")
+	}
+
+	a.doRevert(sess.ID, second.ID, target)
+
+	msgs, _ := mgr.Messages(sess.ID)
+	if len(msgs) != 2 {
+		t.Fatalf("messages after revert = %d, want 2", len(msgs))
+	}
+	if got := a.home.Input().Value(); got != "second" {
+		t.Fatalf("input = %q, want second", got)
+	}
+}
+
+func TestAppResolveUserMessage(t *testing.T) {
+	a, mgr := newSessionApp(t)
+	dir, _ := os.Getwd()
+	sess, err := mgr.Create(session.CreateOptions{Title: "S", Provider: "p", Model: "m", ProjectDir: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = mgr.AppendMessage(sess.ID, llm.Message{Role: llm.RoleUser, Content: "first"})
+	second, _ := mgr.AppendMessage(sess.ID, llm.Message{Role: llm.RoleUser, Content: "second"})
+
+	info, _ := a.sessionInfoFor(sess.ID)
+	a.activateSession(info)
+
+	target := chatItemByText(a.chat.Items(), "second")
+	sid, mid, ok := a.resolveUserMessage(target)
+	if !ok || sid != sess.ID || mid != second.ID {
+		t.Fatalf("resolveUserMessage = (%q,%q,%v), want (%q,%q,true)", sid, mid, ok, sess.ID, second.ID)
+	}
+
+	live := &components.ChatItem{Kind: components.ItemUser, Text: "third"}
+	a.chat.AppendItem(live)
+	third, _ := mgr.AppendMessage(sess.ID, llm.Message{Role: llm.RoleUser, Content: "third"})
+	_, mid, ok = a.resolveUserMessage(live)
+	if !ok || mid != third.ID {
+		t.Fatalf("live resolve = (%q,%v), want %q", mid, ok, third.ID)
+	}
+}
+
+func TestAppForkMessage(t *testing.T) {
+	a, mgr := newSessionApp(t)
+	dir, _ := os.Getwd()
+	sess, err := mgr.Create(session.CreateOptions{Title: "S", Provider: "p", Model: "m", ProjectDir: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = mgr.AppendMessage(sess.ID, llm.Message{Role: llm.RoleUser, Content: "first"})
+	_, _ = mgr.AppendMessage(sess.ID, llm.Message{Role: llm.RoleAssistant, Content: "hi"})
+	second, _ := mgr.AppendMessage(sess.ID, llm.Message{Role: llm.RoleUser, Content: "second"})
+
+	info, ok := a.sessionInfoFor(sess.ID)
+	if !ok {
+		t.Fatal("session info not loaded")
+	}
+	a.activateSession(info)
+
+	target := chatItemByText(a.chat.Items(), "second")
+	if target == nil {
+		t.Fatal("second user message not found in chat")
+	}
+
+	a.forkMessage(sess.ID, second.ID, target)
+
+	if a.session == nil || a.session.info.ID == sess.ID {
+		t.Fatal("active session should switch to the fork")
+	}
+	if a.session.info.Title != "S - fork" {
+		t.Fatalf("fork title = %q, want 'S - fork'", a.session.info.Title)
+	}
+	forkMsgs, _ := mgr.Messages(a.session.info.ID)
+	if len(forkMsgs) != 2 {
+		t.Fatalf("fork messages = %d, want 2", len(forkMsgs))
+	}
+	if got := a.home.Input().Value(); got != "second" {
+		t.Fatalf("input = %q, want second", got)
+	}
+	origMsgs, _ := mgr.Messages(sess.ID)
+	if len(origMsgs) != 3 {
+		t.Fatalf("original messages = %d, want 3", len(origMsgs))
+	}
+}

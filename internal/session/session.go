@@ -72,6 +72,7 @@ type Store interface {
 	InsertMessage(m Message) error
 	Messages(sessionID string) ([]Message, error)
 	TruncateAfter(sessionID, messageID string) ([]Message, error)
+	TruncateFrom(sessionID, messageID string) ([]Message, error)
 
 	SaveSnapshot(s Snapshot) error
 	Snapshots(sessionID string) ([]Snapshot, error)

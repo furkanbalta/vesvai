@@ -118,6 +118,34 @@ func TestJSONStoreMessagesTruncate(t *testing.T) {
 	}
 }
 
+func TestJSONStoreMessagesTruncateFrom(t *testing.T) {
+	s := newTestJSONStore(t)
+	if err := s.Create(testSession("s1")); err != nil {
+		t.Fatal(err)
+	}
+	for i := 1; i <= 4; i++ {
+		if err := s.InsertMessage(testMessage("s1", i, llm.RoleUser, "hi")); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	removed, err := s.TruncateFrom("s1", "s1-m2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(removed) != 3 || removed[0].Seq != 2 {
+		t.Fatalf("removed = %+v", removed)
+	}
+	msgs, _ := s.Messages("s1")
+	if len(msgs) != 1 || msgs[0].Seq != 1 {
+		t.Fatalf("messages after truncate-from = %+v", msgs)
+	}
+
+	if _, err := s.TruncateFrom("s1", "nope"); !errors.Is(err, ErrMessageNotFound) {
+		t.Fatalf("want ErrMessageNotFound, got %v", err)
+	}
+}
+
 func TestJSONStoreSnapshotRestore(t *testing.T) {
 	s := newTestJSONStore(t)
 	if err := s.Create(testSession("s1")); err != nil {

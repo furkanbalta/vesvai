@@ -1063,6 +1063,20 @@ func (in *Input) Clear() {
 	in.longTexts = make(map[rune]string)
 }
 
+func (in *Input) SetValue(text string) {
+	in.Clear()
+	if text == "" {
+		in.lastActivity = time.Now()
+		in.ensureCursorVisible()
+		return
+	}
+	in.lines = strings.Split(text, "\n")
+	in.row = len(in.lines) - 1
+	in.col = len([]rune(in.lines[in.row]))
+	in.lastActivity = time.Now()
+	in.ensureCursorVisible()
+}
+
 func (in *Input) HandleKey(ev *tcell.EventKey) bool {
 	if !in.focused {
 		return false

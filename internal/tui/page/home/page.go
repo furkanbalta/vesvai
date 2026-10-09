@@ -168,6 +168,18 @@ func (p *Page) HandleClick(x, y, w, h int) bool {
 	return p.chat.HandleClick(x, y, chatRegion.Top)
 }
 
+func (p *Page) HandleMouse(x, y, w, h int, buttons tcell.ButtonMask) bool {
+	if !p.chat.HasItems() {
+		return false
+	}
+	chatRegion := p.chatBounds(layout.Region{Left: 0, Top: 0, Width: w, Height: h})
+	inside := x >= chatRegion.Left && x < chatRegion.Right() && y >= chatRegion.Top && y < chatRegion.Bottom()
+	if !inside && buttons&tcell.ButtonPrimary != 0 {
+		return false
+	}
+	return p.chat.HandleMouse(x, y, chatRegion.Top, chatRegion.Left, buttons)
+}
+
 func (p *Page) chatBounds(bounds layout.Region) layout.Region {
 	statusRegion := layout.BottomAligned(bounds, 1)
 	innerW := bounds.Width - 4
