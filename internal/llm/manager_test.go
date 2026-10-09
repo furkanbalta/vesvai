@@ -118,6 +118,32 @@ func TestManagerPreferredFallback(t *testing.T) {
 	}
 }
 
+func TestManagerPreferredFreeModel(t *testing.T) {
+	mgr, _ := newTestManager(t)
+	registerMockProvider(t, "mgr-free-a", []Model{{ID: "paid-model"}, {ID: "free-model"}})
+	mgr.Sync(context.Background(), []config.LLMConfig{{Provider: "mgr-free-a"}})
+
+	res := mgr.Select(SelectRequest{Mode: SelectModePreferred})
+	if res.Err != nil || res.Model.ID != "free-model" {
+		t.Fatalf("unexpected result: %+v", res)
+	}
+}
+
+func TestManagerPreferredFreeModelAcrossProviders(t *testing.T) {
+	mgr, _ := newTestManager(t)
+	registerMockProvider(t, "mgr-fp-a", []Model{{ID: "a1"}})
+	registerMockProvider(t, "mgr-fp-b", []Model{{ID: "b1"}, {ID: "b2", Name: "Some Free Tier"}})
+	mgr.Sync(context.Background(), []config.LLMConfig{
+		{Provider: "mgr-fp-a"},
+		{Provider: "mgr-fp-b"},
+	})
+
+	res := mgr.Select(SelectRequest{Mode: SelectModePreferred})
+	if res.Err != nil || res.Provider != "mgr-fp-b" || res.Model.ID != "b2" {
+		t.Fatalf("unexpected result: %+v", res)
+	}
+}
+
 func TestManagerPreferredSessionResolver(t *testing.T) {
 	mgr, _ := newTestManager(t)
 	registerMockProvider(t, "mgr-res-a", []Model{{ID: "a1"}, {ID: "a2"}})

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -406,11 +407,30 @@ func (m *Manager) preferred(provider string) SelectResult {
 		if provider != "" && name != provider {
 			continue
 		}
+		for _, mdl := range e.models {
+			if isFreeModel(mdl) {
+				return SelectResult{Provider: name, Model: mdl}
+			}
+		}
+	}
+
+	for name, e := range m.entries {
+		if e.system {
+			continue
+		}
+		if provider != "" && name != provider {
+			continue
+		}
 		if len(e.models) > 0 {
 			return SelectResult{Provider: name, Model: e.models[0]}
 		}
 	}
 	return SelectResult{Err: errors.New("llm: no models cached")}
+}
+
+func isFreeModel(m Model) bool {
+	return strings.Contains(strings.ToLower(m.Name), "free") ||
+		strings.Contains(strings.ToLower(m.ID), "free")
 }
 
 func (m *Manager) Provider(name string) (Provider, error) {

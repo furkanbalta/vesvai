@@ -101,27 +101,10 @@ func Run(args []string) error {
 		if err != nil {
 			return "", "", false
 		}
-		q := query.Query{
-			Page: query.Page{Number: 1, Size: 20},
-			Sort: []query.Sort{{Column: "updated_at", Dir: query.Desc}},
-			Filters: []query.Filter{
-				{Column: "project_dir", Operator: query.OpEqual, Value: dir},
-			},
+		if prov, model, ok := sessionModel(sess, dir); ok {
+			return prov, model, true
 		}
-		sessions, _, err := sess.List(q)
-		if err != nil {
-			return "", "", false
-		}
-		for _, s := range sessions {
-			if subagent.IsSubagentSession(s.ID) {
-				continue
-			}
-			if s.Provider == "" || s.Model == "" {
-				continue
-			}
-			return s.Provider, s.Model, true
-		}
-		return "", "", false
+		return sessionModel(sess, "")
 	})
 
 	rec := session.NewRecorder(sess, log)
@@ -171,4 +154,30 @@ func Run(args []string) error {
 
 	log.Info("application stopped")
 	return nil
+}
+
+func sessionModel(sess *session.Manager, dir string) (string, string, bool) {
+	q := query.Query{
+		Page: query.Page{Number: 1, Size: 20},
+		Sort: []query.Sort{{Column: "updated_at", Dir: query.Desc}},
+	}
+	if dir != "" {
+		q.Filters = []query.Filter{
+			{Column: "project_dir", Operator: query.OpEqual, Value: dir},
+		}
+	}
+	sessions, _, err := sess.List(q)
+	if err != nil {
+		return "", "", false
+	}
+	for _, s := range sessions {
+		if subagent.IsSubagentSession(s.ID) {
+			continue
+		}
+		if s.Provider == "" || s.Model == "" {
+			continue
+		}
+		return s.Provider, s.Model, true
+	}
+	return "", "", false
 }
