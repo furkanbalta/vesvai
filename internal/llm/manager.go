@@ -274,11 +274,18 @@ func (m *Manager) resolveAndLoad(ctx context.Context, cfg config.LLMConfig) (str
 		return name, nil, nil, err
 	}
 
-	if cached, ok := m.loadCachedModels(name); ok {
-		cached = m.enrichWithConfig(name, cached)
-		m.storeEntry(name, cfg, prov, cached)
-		m.log.Fdebug("llm: provider %q loaded %d models from cache", name, len(cached))
-		return name, prov, cached, nil
+	skipCache := false
+	if s, ok := prov.(interface{ SkipModelCache() bool }); ok {
+		skipCache = s.SkipModelCache()
+	}
+
+	if !skipCache {
+		if cached, ok := m.loadCachedModels(name); ok {
+			cached = m.enrichWithConfig(name, cached)
+			m.storeEntry(name, cfg, prov, cached)
+			m.log.Fdebug("llm: provider %q loaded %d models from cache", name, len(cached))
+			return name, prov, cached, nil
+		}
 	}
 	models, err := prov.ListModels(ctx)
 	if err != nil {

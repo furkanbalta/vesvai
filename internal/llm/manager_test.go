@@ -187,6 +187,39 @@ func TestManagerPreferredEmptyCache(t *testing.T) {
 	}
 }
 
+func TestManagerSkipsModelCache(t *testing.T) {
+	mgr, _, _ := newTestManagerWithCache(t)
+	p := &skipCacheProvider{name: "mgr-skip", models: []Model{{ID: "old"}}}
+	RegisterProvider("mgr-skip", func(config.LLMConfig) (Provider, error) { return p, nil })
+
+	mgr.Sync(context.Background(), []config.LLMConfig{{Provider: "mgr-skip"}})
+	if models, _ := mgr.Models("mgr-skip"); len(models) != 1 || models[0].ID != "old" {
+		t.Fatalf("models = %+v", models)
+	}
+
+	p.models = []Model{{ID: "new1"}, {ID: "new2"}}
+	mgr.Sync(context.Background(), []config.LLMConfig{{Provider: "mgr-skip"}})
+	models, _ := mgr.Models("mgr-skip")
+	if len(models) != 2 || models[0].ID != "new1" {
+		t.Fatalf("models after change = %+v, want the fresh list", models)
+	}
+}
+
+type skipCacheProvider struct {
+	name   string
+	models []Model
+}
+
+func (m *skipCacheProvider) Name() string { return m.name }
+func (m *skipCacheProvider) Chat(context.Context, *Request) (*Response, error) {
+	return &Response{}, nil
+}
+func (m *skipCacheProvider) ChatStream(context.Context, *Request, StreamHandler) error {
+	return nil
+}
+func (m *skipCacheProvider) ListModels(context.Context) ([]Model, error) { return m.models, nil }
+func (m *skipCacheProvider) SkipModelCache() bool                        { return true }
+
 func TestManagerProviderRemoved(t *testing.T) {
 	mgr, _ := newTestManager(t)
 	registerMockProvider(t, "mgr-rm-a", []Model{{ID: "m1"}})

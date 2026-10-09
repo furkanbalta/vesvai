@@ -9,6 +9,7 @@ import (
 	"github.com/peggco/pegg/internal/core/config"
 	"github.com/peggco/pegg/internal/core/event"
 	"github.com/peggco/pegg/internal/llm"
+	"github.com/peggco/pegg/internal/llm/subscription"
 	"github.com/peggco/pegg/internal/router"
 	"github.com/peggco/pegg/internal/tui/components"
 	"github.com/peggco/pegg/internal/tui/layout"
@@ -150,6 +151,10 @@ func (s *Settings) openProviders() {
 	l.SetItems(items)
 	l.SetOnSelect(func(_ int, item components.ListItem) {
 		name, _ := item.Data.(string)
+		if info, ok := subscription.Get(name); ok {
+			s.openSubscription(name, info)
+			return
+		}
 		if _, ok := s.configured(name); ok {
 			s.openProviderChoice(name)
 		} else {
@@ -157,6 +162,42 @@ func (s *Settings) openProviders() {
 		}
 	})
 	s.openSub(&listModal{title: "Providers (type to search)", list: l, onBack: s.back})
+}
+
+func (s *Settings) openSubscription(name string, info subscription.Info) {
+	if !info.Status().LoggedIn {
+		l := components.NewList("Sign in required")
+		l.SetItems([]components.ListItem{
+			{Label: info.Hint, Disabled: true},
+			{Label: "Retry", Detail: "re-check credentials"},
+			{Label: "Cancel", Detail: "go back"},
+		})
+		l.SelectFirstEnabled()
+		l.SetOnSelect(func(i int, _ components.ListItem) {
+			if i == 1 {
+				s.openSubscription(name, info)
+			} else {
+				s.back()
+			}
+		})
+		s.openSub(&listModal{title: name + " — not signed in", list: l, onBack: s.back})
+		return
+	}
+
+	cfg := config.LLMConfig{Provider: name}
+	if err := config.UpsertProvider(cfg); err != nil {
+		s.errMsg = "failed to save provider: " + err.Error()
+		s.back()
+		return
+	}
+	if fresh, err := config.Load(); err == nil {
+		s.deps.Config = fresh
+	}
+	if s.deps.Bus != nil {
+		s.deps.Bus.Publish(event.TopicProviderAdded, cfg)
+	}
+	s.errMsg = ""
+	s.back()
 }
 
 func (s *Settings) openProviderChoice(name string) {

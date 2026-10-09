@@ -16,6 +16,7 @@ import (
 	"github.com/peggco/pegg/internal/core/config"
 	"github.com/peggco/pegg/internal/core/event"
 	"github.com/peggco/pegg/internal/llm"
+	"github.com/peggco/pegg/internal/llm/subscription"
 )
 
 func maskAPIKey(key string) string {
@@ -53,7 +54,17 @@ func (c *CLI) runProviders(out io.Writer) error {
 				count = len(models)
 			}
 		}
-		fmt.Fprintf(out, "%-12s %-24s %d\n", p.Provider, maskAPIKey(p.APIKey), count)
+		auth := maskAPIKey(p.APIKey)
+		if info, ok := subscription.Get(p.Provider); ok {
+			auth = "not signed in"
+			if st := info.Status(); st.LoggedIn {
+				auth = "subscription"
+				if st.Plan != "" {
+					auth = "subscription (" + st.Plan + ")"
+				}
+			}
+		}
+		fmt.Fprintf(out, "%-12s %-24s %d\n", p.Provider, auth, count)
 	}
 	return nil
 }
