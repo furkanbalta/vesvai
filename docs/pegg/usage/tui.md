@@ -42,7 +42,7 @@ terminal, or explicitly with `pegg tui`.
 | ++ctrl+t++ | Cycle to the next theme (saved to config) |
 | ++ctrl+p++ | Open Settings |
 | ++esc++ | Interrupt (see below) |
-| ++tab++ | Cycle focus: input → attachments → chat → input |
+| ++tab++ | Toggle focus between the input and attachments (when attachments exist) |
 | Mouse wheel | Scroll the chat 3 lines |
 | Mouse click | Activate the item under the cursor |
 
@@ -52,8 +52,8 @@ While a run is active, pressing ++esc++ once shows *Press Esc to interrupt*.
 Pressing ++esc++ again within **2 seconds** cancels the run and all subagents.
 Pressing it once and waiting lets the run continue.
 
-When the chat has focus, ++esc++ returns focus to the input. While viewing a
-subagent transcript, ++esc++ goes back to the main chat.
+When the attachment bar has focus, ++esc++ returns focus to the input. While
+viewing a subagent transcript, ++esc++ goes back to the main chat.
 
 ## Input editor
 
