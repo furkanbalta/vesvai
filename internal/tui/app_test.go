@@ -9,6 +9,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/terminfo"
 
+	"github.com/peggco/pegg/internal/agent"
 	"github.com/peggco/pegg/internal/core/cache"
 	"github.com/peggco/pegg/internal/core/config"
 	"github.com/peggco/pegg/internal/core/event"
@@ -552,6 +553,49 @@ func TestAppResolveUserMessage(t *testing.T) {
 	_, mid, ok = a.resolveUserMessage(live)
 	if !ok || mid != third.ID {
 		t.Fatalf("live resolve = (%q,%v), want %q", mid, ok, third.ID)
+	}
+}
+
+func TestPrepareAgentRunAppliesModelChange(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	bus := event.New()
+	log := logger.New(logger.LevelDebug, discardHandler{})
+	cacheStore, err := cache.NewJSONCache()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { cacheStore.Close() })
+	mgr := llm.NewManager(bus, log, cacheStore)
+	if err := mgr.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(mgr.Shutdown)
+
+	llm.RegisterProvider("tui-model-prov", func(config.LLMConfig) (llm.Provider, error) {
+		return &chatEchoProvider{}, nil
+	})
+	mgr.Sync(context.Background(), []config.LLMConfig{{Provider: "tui-model-prov"}})
+
+	orch := agent.New("orch", agent.WithProvider(&chatEchoProvider{}), agent.WithModel(llm.Model{ID: "old"}))
+	app := &App{
+		bus:         bus,
+		deps:        settings.Deps{Agent: orch, Bus: bus, LLM: mgr},
+		agent:       orch,
+		screen:      newTestScreen(t),
+		ctx:         context.Background(),
+		subs:        map[string]*agentTranscript{},
+		subItemByID: map[string]*components.ChatItem{},
+	}
+	app.model = selectedModel{provider: "tui-model-prov", model: llm.Model{ID: "new"}}
+
+	_, cancel, _ := app.prepareAgentRun("hi", nil)
+	cancel()
+
+	if app.agent.Model.ID != "new" {
+		t.Fatalf("agent model = %q, want new", app.agent.Model.ID)
+	}
+	if app.agent.Provider == nil {
+		t.Fatal("agent provider should be set")
 	}
 }
 

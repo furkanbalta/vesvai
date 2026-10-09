@@ -681,9 +681,10 @@ func (a *App) prepareAgentRun(input string, attachments []llm.Attachment) (conte
 	if orch.Bus == nil {
 		orch.Bus = a.bus
 	}
-	if orch.Provider == nil || orch.Model.ID == "" {
+	if a.model.model.ID != "" {
 		if prov, err := a.deps.LLM.Provider(a.model.provider); err == nil {
 			orch.SetModelProvider(a.model.model, prov)
+			a.syncHistorySystemPromptLocked()
 		}
 	}
 	orch.ReasoningEffort = a.reasoningEffort
@@ -698,6 +699,15 @@ func (a *App) prepareAgentRun(input string, attachments []llm.Attachment) (conte
 	a.chatMu.Unlock()
 
 	return ctx, cancel, history
+}
+
+func (a *App) syncHistorySystemPromptLocked() {
+	if a.agent == nil || a.agent.SystemPrompt == "" || len(a.history) == 0 {
+		return
+	}
+	if a.history[0].Role == llm.RoleSystem {
+		a.history[0] = llm.SystemMessage(a.agent.SystemPrompt)
+	}
 }
 
 func (a *App) finishAgentRun(cancel context.CancelFunc) {
