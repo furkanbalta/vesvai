@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v2/terminfo"
 
 	"github.com/peggco/pegg/internal/agent"
 	"github.com/peggco/pegg/internal/agent/agents"
@@ -144,7 +145,7 @@ func (a *App) requestRedraw() {
 func Run(bus event.Bus, deps settings.Deps) error {
 	setBus(bus)
 
-	s, err := tcell.NewScreen()
+	s, err := newScreen()
 	if err != nil {
 		return fmt.Errorf("tui: create screen: %w", err)
 	}
@@ -165,6 +166,27 @@ func Run(bus event.Bus, deps settings.Deps) error {
 		cancel:      cancel,
 	}
 	return a.start()
+}
+
+func newScreen() (tcell.Screen, error) {
+	if ti, err := tcell.LookupTerminfo(os.Getenv("TERM")); err == nil {
+		if prep := prepareTerminfo(ti); prep != nil {
+			if s, err := tcell.NewTerminfoScreenFromTtyTerminfo(newKeypadTty(os.Getenv("PEGG_KEYLOG")), prep); err == nil {
+				return s, nil
+			}
+		}
+	}
+	return tcell.NewScreen()
+}
+
+func prepareTerminfo(ti *terminfo.Terminfo) *terminfo.Terminfo {
+	if ti == nil {
+		return nil
+	}
+	clone := *ti
+	clone.EnterKeypad = ""
+	clone.ExitKeypad = ""
+	return &clone
 }
 
 func (a *App) start() error {

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v2/terminfo"
 
 	"github.com/peggco/pegg/internal/core/cache"
 	"github.com/peggco/pegg/internal/core/config"
@@ -400,5 +401,70 @@ func TestAppThemeCycle(t *testing.T) {
 	}
 	if !changed {
 		t.Error("theme did not change after Ctrl+T")
+	}
+}
+
+func TestPrepareTerminfo(t *testing.T) {
+	ti := &terminfo.Terminfo{Name: "xterm", EnterKeypad: "\x1b[?1h\x1b=", ExitKeypad: "\x1b[?1l\x1b>"}
+	got := prepareTerminfo(ti)
+	if got == nil {
+		t.Fatal("expected a clone")
+	}
+	if got.EnterKeypad != "" || got.ExitKeypad != "" {
+		t.Fatalf("keypad caps not cleared: enter=%q exit=%q", got.EnterKeypad, got.ExitKeypad)
+	}
+	if ti.EnterKeypad == "" || ti.ExitKeypad == "" {
+		t.Fatal("original terminfo must not be mutated")
+	}
+}
+
+func TestPrepareTerminfoNil(t *testing.T) {
+	if got := prepareTerminfo(nil); got != nil {
+		t.Fatalf("nil terminfo should yield nil, got %+v", got)
+	}
+}
+
+func TestRewriteKeypad(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"numlock on kp2", "\x1b[57420;129u", "2"},
+		{"numlock on kp4", "\x1b[57417;129u", "4"},
+		{"numlock on kp5", "\x1b[57427;129u", "5"},
+		{"numlock off kp2 stays nav", "\x1b[57420;1u", "\x1b[57420;1u"},
+		{"real arrow untouched", "\x1b[A", "\x1b[A"},
+		{"plain digit untouched", "7", "7"},
+		{"digit keypad code untouched", "\x1b[57401;129u", "\x1b[57401;129u"},
+		{"win32 numpad 2", "\x1b[40;0;50;1;0;1_", "2"},
+		{"win32 numpad 4", "\x1b[37;0;52;1;0;1_", "4"},
+		{"win32 numpad 5 already works", "\x1b[101;0;53;1;0;1_", "\x1b[101;0;53;1;0;1_"},
+		{"win32 numpad 6", "\x1b[39;0;54;1;0;1_", "6"},
+		{"win32 numpad 8", "\x1b[38;0;56;1;0;1_", "8"},
+		{"win32 release untouched", "\x1b[40;0;50;0;0;1_", "\x1b[40;0;50;0;0;1_"},
+		{"win32 real arrow untouched", "\x1b[40;0;0;1;0;1_", "\x1b[40;0;0;1;0;1_"},
+		{"win32 ctrl-c untouched", "\x1b[67;0;3;1;8;1_", "\x1b[67;0;3;1;8;1_"},
+	}
+	for _, c := range cases {
+		if got := string(rewriteKeypad([]byte(c.in))); got != c.want {
+			t.Errorf("%s: rewriteKeypad(%q) = %q, want %q", c.name, c.in, got, c.want)
+		}
+	}
+}
+
+func TestRewriteKeypadSequence(t *testing.T) {
+	in := "\x1b[40;0;50;1;0;1_" + // numpad 2 down
+		"\x1b[40;0;50;0;0;1_" + // numpad 2 up (ignored by tcell)
+		"\x1b[37;0;52;1;0;1_" + // numpad 4 down
+		"\x1b[37;0;52;0;0;1_" + // numpad 4 up
+		"\x1b[101;0;53;1;0;1_" // numpad 5 down (already works)
+	want := "2" +
+		"\x1b[40;0;50;0;0;1_" +
+		"4" +
+		"\x1b[37;0;52;0;0;1_" +
+		"\x1b[101;0;53;1;0;1_"
+	if got := string(rewriteKeypad([]byte(in))); got != want {
+		t.Fatalf("rewriteKeypad = %q, want %q", got, want)
 	}
 }
