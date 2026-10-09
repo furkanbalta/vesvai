@@ -733,9 +733,11 @@ func (a *App) drawLocked() {
 	style := th.Base().Foreground(th.Error)
 	hintY := h - 2
 	switch {
-	case a.errorMsg != "":
+	case a.errorMsg != "" && a.getOverlay() == nil && a.home != nil:
+		a.home.DrawErrorBanner(a.screen, bounds, a.errorMsg, style)
+	case a.errorMsg != "" && a.getOverlay() == nil:
 		components.DrawText(a.screen, 2, hintY, a.errorMsg, style)
-	case a.escHint:
+	case a.escHint && a.getOverlay() == nil:
 		components.DrawText(a.screen, 2, hintY, "Press Esc to interrupt", style)
 	}
 	a.screen.Show()

@@ -584,9 +584,9 @@ func (c *Chat) itemLines(it *ChatItem, width int) []Line {
 		return nil
 	case ItemError:
 		th := styles.Current()
-		lines = []Line{LineFromSegments([]Segment{
+		lines = WrapSegments([]Segment{
 			{Text: "✖ error: " + it.Text, Style: th.Base().Foreground(th.Error).Bold(true).Background(th.Background)},
-		}, width)}
+		}, width)
 	case ItemCompaction:
 		th := styles.Current()
 		lines = []Line{LineFromSegments([]Segment{

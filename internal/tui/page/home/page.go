@@ -197,6 +197,27 @@ func (p *Page) chatBounds(bounds layout.Region) layout.Region {
 	}
 }
 
+func (p *Page) DrawErrorBanner(s tcell.Screen, bounds layout.Region, msg string, style tcell.Style) {
+	if msg == "" {
+		return
+	}
+	region := p.chatBounds(bounds)
+	if region.Width < 1 || region.Height < 1 {
+		return
+	}
+	lines := components.WrapText(msg, style, region.Width)
+	if len(lines) == 0 {
+		return
+	}
+	if len(lines) > region.Height {
+		lines = lines[:region.Height]
+	}
+	y := region.Bottom() - len(lines)
+	for i, ln := range lines {
+		components.DrawLine(s, region.Left, y+i, ln)
+	}
+}
+
 func (p *Page) HandleKey(ev *tcell.EventKey) bool {
 	if p.askPicker.Active() {
 		return p.askPicker.HandleKey(ev)
