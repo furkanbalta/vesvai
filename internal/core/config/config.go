@@ -276,7 +276,7 @@ func DefaultConfig() *Config {
 			MaxToolOutputChars: 4000,
 		},
 		SmartRouter: &SmartRouterConfig{
-			Enabled: true,
+			Enabled: false,
 			Agents:  make(map[string]RouterAgentConfig),
 		},
 		Memory: &MemoryConfig{
