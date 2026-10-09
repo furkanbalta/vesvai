@@ -5,7 +5,10 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 
+	"github.com/peggco/pegg/internal/core/config"
 	"github.com/peggco/pegg/internal/llm"
+	"github.com/peggco/pegg/internal/llm/credentials"
+	"github.com/peggco/pegg/internal/llm/subscription"
 	"github.com/peggco/pegg/internal/tui/components"
 	"github.com/peggco/pegg/internal/tui/layout"
 	"github.com/peggco/pegg/internal/tui/styles"
@@ -210,6 +213,59 @@ func TestSettingsAllTabsMouseSmoke(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestSettingsOpenSubscription(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	s := New(Deps{})
+	subscription.Register(subscription.Info{
+		Provider: "tuisub",
+		Hint:     "run tui-cli",
+		Status:   func() credentials.Status { return credentials.Status{Provider: "tuisub", LoggedIn: true} },
+	})
+	s.openSubscription("tuisub", mustSub(t, "tuisub"))
+	if s.sub != nil {
+		t.Fatal("signed-in subscription should close the modal")
+	}
+	if s.errMsg != "" {
+		t.Fatalf("errMsg = %q", s.errMsg)
+	}
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, p := range cfg.Providers {
+		if p.Provider == "tuisub" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("tuisub provider not saved: %+v", cfg.Providers)
+	}
+}
+
+func TestSettingsOpenSubscriptionNotSignedIn(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	s := New(Deps{})
+	subscription.Register(subscription.Info{
+		Provider: "tuisub2",
+		Hint:     "run tui-cli",
+		Status:   func() credentials.Status { return credentials.Status{Provider: "tuisub2", LoggedIn: false} },
+	})
+	s.openSubscription("tuisub2", mustSub(t, "tuisub2"))
+	if s.sub == nil {
+		t.Fatal("not-signed-in subscription should show instructions")
+	}
+}
+
+func mustSub(t *testing.T, name string) subscription.Info {
+	t.Helper()
+	info, ok := subscription.Get(name)
+	if !ok {
+		t.Fatalf("subscription %q not registered", name)
+	}
+	return info
 }
 
 func TestSettingsSetSelectedModelUsesID(t *testing.T) {

@@ -106,6 +106,7 @@ func (c *CLI) registerDefaultCommands() {
 	c.OnRegisterCommand(func(cmds []*cobra.Command) []*cobra.Command {
 		return append(cmds,
 			c.newLoginCommand(),
+			c.newLogoutCommand(),
 			c.newLogsCommand(),
 			c.newFilesCommand(),
 			c.newCacheCommand(),

@@ -9,7 +9,7 @@ named, preconfigured endpoint; a **driver** is the wire protocol it speaks.
 
 ## Providers
 
-32 providers are registered out of the box. Every provider exposes a model list that
+36 providers are registered out of the box. Every provider exposes a model list that
 Pegg fetches at startup and caches locally.
 
 | Provider | Driver | Default base URL |
@@ -57,6 +57,41 @@ Pegg fetches at startup and caches locally.
 
 Requests also send `HTTP-Referer: https://github.com/peggco/pegg` and
 `X-Title: pegg` unless you override the headers in config.
+
+### Subscriptions
+
+Some providers use an existing **subscription** instead of an API key, reusing the
+OAuth credentials that the official CLI already stored after you signed in with it.
+Pegg never performs the OAuth login itself and never writes to those files except
+to refresh an expiring token.
+
+| Provider | Signs in with | Credentials |
+|---|---|---|
+| `claude` | `claude` (Claude Code) | `~/.claude/.credentials.json` (or `$CLAUDE_CONFIG_DIR`) |
+| `codex` | `codex` | `~/.codex/auth.json` (or `$CODEX_HOME`) |
+| `cline` | `cline auth` | `~/.cline/data/settings/providers.json` (or `$CLINE_DATA_DIR`) |
+| `cline-pass` | `cline auth` (ClinePass) | `~/.cline/data/settings/providers.json` |
+
+Cline exposes two separate providers: `cline` is pay-as-you-go (billed against
+your account balance) and `cline-pass` uses your ClinePass subscription. The
+ClinePass models are prefixed `cline-pass/` and are listed by the `cline-pass`
+provider.
+
+```bash
+# sign in with the official CLI first
+claude        # or: codex   /   cline auth
+
+# then enable the provider in pegg
+pegg login --provider claude
+
+# remove it from pegg (the official CLI credentials are left untouched)
+pegg logout --provider claude
+```
+
+In the TUI, open **Settings → General → Provider**, pick a subscription provider,
+and follow the prompt. If you are not signed in, pegg shows the exact command to
+run and lets you retry. Tokens are refreshed automatically before they expire and
+the rotated tokens are written back to the official CLI's file.
 
 ## Adding a provider
 

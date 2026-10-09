@@ -86,20 +86,29 @@ func (l *List) rebuild() {
 }
 
 func (l *List) MoveUp() {
-	if len(l.filtered) == 0 {
-		return
-	}
-	if l.index > 0 {
-		l.index--
+	for i := l.index - 1; i >= 0; i-- {
+		if !l.all[l.filtered[i]].Disabled {
+			l.index = i
+			return
+		}
 	}
 }
 
 func (l *List) MoveDown() {
-	if len(l.filtered) == 0 {
-		return
+	for i := l.index + 1; i < len(l.filtered); i++ {
+		if !l.all[l.filtered[i]].Disabled {
+			l.index = i
+			return
+		}
 	}
-	if l.index < len(l.filtered)-1 {
-		l.index++
+}
+
+func (l *List) SelectFirstEnabled() {
+	for i := range l.filtered {
+		if !l.all[l.filtered[i]].Disabled {
+			l.index = i
+			return
+		}
 	}
 }
 
@@ -117,11 +126,22 @@ func (l *List) MovePageDown(page int) {
 	}
 }
 
-func (l *List) Home() { l.index = 0 }
+func (l *List) Home() {
+	for i := range l.filtered {
+		if !l.all[l.filtered[i]].Disabled {
+			l.index = i
+			return
+		}
+	}
+	l.index = 0
+}
 
 func (l *List) End() {
-	if len(l.filtered) > 0 {
-		l.index = len(l.filtered) - 1
+	for i := len(l.filtered) - 1; i >= 0; i-- {
+		if !l.all[l.filtered[i]].Disabled {
+			l.index = i
+			return
+		}
 	}
 }
 
@@ -153,7 +173,7 @@ func (l *List) HandleKey(ev *tcell.EventKey) bool {
 		return true
 	case tcell.KeyEnter:
 		if l.onSelect != nil {
-			if item, ok := l.Selected(); ok {
+			if item, ok := l.Selected(); ok && !item.Disabled {
 				l.onSelect(l.SelectedIndex(), item)
 			}
 		}
@@ -205,6 +225,9 @@ func (l *List) HandleMouse(x, y int, buttons tcell.ButtonMask) bool {
 		if !inRow || abs < 0 || abs >= len(l.filtered) {
 			return false
 		}
+		if l.all[l.filtered[abs]].Disabled {
+			return true
+		}
 		l.index = abs
 		if l.onSelect != nil {
 			if item, ok := l.Selected(); ok {
@@ -214,7 +237,7 @@ func (l *List) HandleMouse(x, y int, buttons tcell.ButtonMask) bool {
 		return true
 	}
 
-	if inRow && abs >= 0 && abs < len(l.filtered) && abs != l.index {
+	if inRow && abs >= 0 && abs < len(l.filtered) && abs != l.index && !l.all[l.filtered[abs]].Disabled {
 		l.index = abs
 		return true
 	}
@@ -257,19 +280,29 @@ func (l *List) Draw(s tcell.Screen, bounds layout.Region, _ bool) {
 		item := l.all[l.filtered[idx]]
 		y := top + i
 		rowStyle := style
-		if idx == l.index {
-			rowStyle = th.Base().Foreground(th.InputText).Background(th.Selection)
-		} else if item.Disabled {
+		switch {
+		case item.Disabled:
 			rowStyle = th.Base().Foreground(th.Muted).Background(th.InputBg)
+		case idx == l.index:
+			rowStyle = th.Base().Foreground(th.InputText).Background(th.Selection)
 		}
 		label := item.Label
 		if item.Marked {
 			label = "● " + label
 		}
-		DrawText(s, bounds.Left+1, y, TruncateTo(label, bounds.Width-2), rowStyle)
+		labelW := bounds.Width - 2
+		detail := ""
 		if item.Detail != "" {
-			d := TruncateTo(item.Detail, bounds.Width/2)
-			DrawText(s, bounds.Right()-len(d)-1, y, d, rowStyle)
+			detail = TruncateTo(item.Detail, bounds.Width/2)
+			if dw := DisplayWidth(detail); dw+2 < labelW {
+				labelW = bounds.Width - 2 - dw - 2
+			} else {
+				detail = ""
+			}
+		}
+		DrawText(s, bounds.Left+1, y, TruncateTo(label, labelW), rowStyle)
+		if detail != "" {
+			DrawText(s, bounds.Right()-DisplayWidth(detail)-1, y, detail, rowStyle)
 		}
 	}
 }
