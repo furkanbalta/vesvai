@@ -187,6 +187,12 @@ Open with ++ctrl+p++. The overlay has nine tabs; switch with ++left++/++right++ 
 the tab bar is focused. Press ++down++ to enter the tab content, ++up++ to return to
 the tab bar.
 
+The whole settings overlay is mouse-driven: click a tab to switch to it, click a
+row to select and activate it, hover to highlight the row under the pointer, use
+the wheel to scroll lists or adjust numeric rows, and click outside the dialog to
+close it. Sub-menus (lists and text fields) respond to clicks too — click an item
+to choose it, click the field to place the cursor, or click outside to go back.
+
 | Tab | Contents |
 |---|---|
 | **General** | Provider (add or reconfigure), Model (searchable list), Theme, Reasoning effort |

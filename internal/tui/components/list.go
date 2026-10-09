@@ -25,6 +25,10 @@ type List struct {
 	filter   []rune
 	search   bool
 	onSelect func(index int, item ListItem)
+
+	drawRegion  layout.Region
+	drawTop     int
+	drawVisible int
 }
 
 func NewList(title string) *List {
@@ -180,23 +184,64 @@ func (l *List) HandleKey(ev *tcell.EventKey) bool {
 	return false
 }
 
+func (l *List) HandleMouse(x, y int, buttons tcell.ButtonMask) bool {
+	if l.drawRegion.Width == 0 || x < l.drawRegion.Left || x >= l.drawRegion.Right() {
+		return false
+	}
+	switch {
+	case buttons&tcell.WheelUp != 0:
+		l.MoveUp()
+		return true
+	case buttons&tcell.WheelDown != 0:
+		l.MoveDown()
+		return true
+	}
+
+	idx := y - l.drawTop
+	inRow := idx >= 0 && idx < l.drawVisible
+	abs := l.scroll + idx
+
+	if buttons&tcell.ButtonPrimary != 0 {
+		if !inRow || abs < 0 || abs >= len(l.filtered) {
+			return false
+		}
+		l.index = abs
+		if l.onSelect != nil {
+			if item, ok := l.Selected(); ok {
+				l.onSelect(l.SelectedIndex(), item)
+			}
+		}
+		return true
+	}
+
+	if inRow && abs >= 0 && abs < len(l.filtered) && abs != l.index {
+		l.index = abs
+		return true
+	}
+	return false
+}
+
 func (l *List) Draw(s tcell.Screen, bounds layout.Region, _ bool) {
 	th := styles.Current()
 	style := th.Base().Background(th.InputBg)
 	FillRegion(s, bounds, ' ', style)
 
+	l.drawRegion = bounds
 	top := bounds.Top
 	if l.search && len(l.filter) > 0 {
 		DrawText(s, bounds.Left+1, top, "search: "+string(l.filter), th.Base().Foreground(th.Accent).Background(th.InputBg))
 		top++
 	}
+	l.drawTop = top
 
 	if len(l.filtered) == 0 {
 		DrawText(s, bounds.Left+1, top, "(no items)", th.Base().Foreground(th.Placeholder).Background(th.InputBg))
+		l.drawVisible = 0
 		return
 	}
 
 	visible := bounds.Bottom() - top
+	l.drawVisible = visible
 	if l.index < l.scroll {
 		l.scroll = l.index
 	}

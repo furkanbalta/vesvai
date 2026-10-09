@@ -55,6 +55,19 @@ func (g *generalTab) HandleKey(ev *tcell.EventKey) bool {
 	return false
 }
 
+func (g *generalTab) HandleMouse(x, y int, bounds layout.Region, buttons tcell.ButtonMask) bool {
+	rows := g.rows()
+	idx := y - bounds.Top
+	if idx < 0 || idx >= len(rows) {
+		return false
+	}
+	g.index = idx
+	if buttons&tcell.ButtonPrimary != 0 && g.rowEnabled(idx) {
+		rows[idx].action()
+	}
+	return true
+}
+
 type genRow struct {
 	label  string
 	value  string

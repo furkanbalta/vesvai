@@ -11,6 +11,17 @@ type Tabs struct {
 	active  int
 	focused bool
 	scroll  int
+
+	hits []tabHit
+
+	hasLeft, hasRight bool
+	leftX0, leftX1    int
+	rightX0, rightX1  int
+}
+
+type tabHit struct {
+	index  int
+	x0, x1 int
 }
 
 func NewTabs(names []string) *Tabs {
@@ -117,12 +128,17 @@ func (t *Tabs) Draw(s tcell.Screen, x, y, width int, focused bool) {
 	hasRight := end < len(t.names)
 
 	cx := x
+	t.hasLeft, t.hasRight = hasLeft, hasRight
 	if hasLeft {
+		t.leftX0, t.leftX1 = cx, cx
 		DrawText(s, cx, y, "◀", th.Base().Foreground(th.Hint).Background(th.InputBg))
 		cx += 2
 	}
+	t.hits = t.hits[:0]
 	for i := start; i < end; i++ {
 		name := t.names[i]
+		w := tabWidth(name)
+		t.hits = append(t.hits, tabHit{index: i, x0: cx, x1: cx + w - 1})
 		style := th.Base().Foreground(th.Hint).Background(th.InputBg)
 		if i == t.active {
 			if focused {
@@ -132,9 +148,33 @@ func (t *Tabs) Draw(s tcell.Screen, x, y, width int, focused bool) {
 			}
 		}
 		DrawText(s, cx, y, " "+name+" ", style)
-		cx += tabWidth(name)
+		cx += w
 	}
 	if hasRight {
+		t.rightX0, t.rightX1 = cx, cx
 		DrawText(s, cx, y, "▶", th.Base().Foreground(th.Hint).Background(th.InputBg))
 	}
+}
+
+func (t *Tabs) HandleMouse(x, y int) (int, bool) {
+	if t.hasLeft && x >= t.leftX0 && x <= t.leftX1 {
+		if t.active > 0 {
+			t.active--
+		}
+		t.ensureVisible()
+		return t.active, true
+	}
+	if t.hasRight && x >= t.rightX0 && x <= t.rightX1 {
+		if t.active < len(t.names)-1 {
+			t.active++
+		}
+		t.ensureVisible()
+		return t.active, true
+	}
+	for _, h := range t.hits {
+		if x >= h.x0 && x <= h.x1 {
+			return h.index, true
+		}
+	}
+	return 0, false
 }

@@ -4,6 +4,9 @@ import (
 	"testing"
 
 	"github.com/gdamore/tcell/v2"
+
+	"github.com/peggco/pegg/internal/tui/layout"
+	"github.com/peggco/pegg/internal/tui/styles"
 )
 
 func items(n int) []ListItem {
@@ -127,4 +130,36 @@ func TestListHomeEndEmpty(t *testing.T) {
 	l.End()
 	l.MoveUp()
 	l.MoveDown()
+}
+
+func TestListMouseClickAndHover(t *testing.T) {
+	styles.RegisterDefaults()
+	styles.Set("dark")
+	s := tcell.NewSimulationScreen("UTF-8")
+	if err := s.Init(); err != nil {
+		t.Fatal(err)
+	}
+	defer s.Fini()
+	s.SetSize(40, 12)
+
+	l := NewList("test")
+	l.SetItems(items(5))
+	sel := -1
+	l.SetOnSelect(func(i int, _ ListItem) { sel = i })
+	bounds := layout.Region{Left: 0, Top: 0, Width: 40, Height: 10}
+	l.Draw(s, bounds, true)
+
+	if !l.HandleMouse(bounds.Left+1, bounds.Top+2, 0) {
+		t.Fatal("hover should be handled")
+	}
+	if l.index != 2 {
+		t.Fatalf("index = %d, want 2 after hover", l.index)
+	}
+
+	if !l.HandleMouse(bounds.Left+1, bounds.Top+3, tcell.ButtonPrimary) {
+		t.Fatal("click should be handled")
+	}
+	if sel != 3 {
+		t.Fatalf("selected = %d, want 3", sel)
+	}
 }

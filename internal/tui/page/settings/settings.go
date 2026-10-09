@@ -76,6 +76,8 @@ type Settings struct {
 
 	reasoningEffort string
 
+	bounds layout.Region
+
 	onRequestUpdate func()
 	requestRedraw   func()
 
@@ -86,6 +88,8 @@ type Settings struct {
 	onSessionClear          func()
 	onThemeChange           func()
 }
+
+var _ components.MouseComponent = (*Settings)(nil)
 
 func New(deps Deps) *Settings {
 	s := &Settings{deps: deps, tabs: components.NewTabs(tabNames)}
@@ -273,10 +277,7 @@ func (s *Settings) HandleKey(ev *tcell.EventKey) bool {
 	return handled
 }
 
-func (s *Settings) Draw(screen tcell.Screen, bounds layout.Region, focused bool) {
-	th := styles.Current()
-	components.DrawModalBackdrop(screen, bounds)
-
+func settingsBoxSize(bounds layout.Region) (int, int) {
 	w, h := bounds.Width-6, bounds.Height-6
 	if w > 78 {
 		w = 78
@@ -284,6 +285,25 @@ func (s *Settings) Draw(screen tcell.Screen, bounds layout.Region, focused bool)
 	if h > 30 {
 		h = 30
 	}
+	return w, h
+}
+
+func (s *Settings) contentRegion() layout.Region {
+	inner := s.innerRegion()
+	return layout.Region{Left: inner.Left, Top: inner.Top + 2, Width: inner.Width, Height: inner.Height - 3}
+}
+
+func (s *Settings) innerRegion() layout.Region {
+	w, h := settingsBoxSize(s.bounds)
+	return components.CenteredBoxRegion(s.bounds, w, h)
+}
+
+func (s *Settings) Draw(screen tcell.Screen, bounds layout.Region, focused bool) {
+	th := styles.Current()
+	components.DrawModalBackdrop(screen, bounds)
+	s.bounds = bounds
+
+	w, h := settingsBoxSize(bounds)
 	inner := components.DrawCenteredBox(screen, bounds, w, h, "Settings")
 
 	s.tabs.Draw(screen, inner.Left+1, inner.Top, inner.Width-2, s.focus == settingsFocusTabs)
@@ -326,4 +346,58 @@ func (s *Settings) Draw(screen tcell.Screen, bounds layout.Region, focused bool)
 	} else {
 		components.DrawFooter(screen, inner, "↑ tabs  Esc close")
 	}
+}
+
+func (s *Settings) HandleMouse(x, y int, buttons tcell.ButtonMask) bool {
+	if s.sub != nil {
+		if m, ok := s.sub.(components.MouseComponent); ok {
+			return m.HandleMouse(x, y, buttons)
+		}
+		return false
+	}
+	if s.bounds.Width == 0 {
+		return false
+	}
+	inner := s.innerRegion()
+	box := layout.Region{Left: inner.Left - 1, Top: inner.Top - 1, Width: inner.Width + 2, Height: inner.Height + 2}
+
+	if buttons&tcell.ButtonPrimary != 0 && !inRegion(box, x, y) {
+		if s.onClose != nil {
+			s.onClose()
+		}
+		return true
+	}
+
+	if buttons&tcell.ButtonPrimary != 0 && y == inner.Top {
+		if idx, ok := s.tabs.HandleMouse(x, y); ok {
+			s.tab = tabKind(idx)
+			s.tabs.SetActive(idx)
+			s.tabs.SetFocused(true)
+			s.focus = settingsFocusTabs
+			return true
+		}
+	}
+
+	content := s.contentRegion()
+	switch s.tab {
+	case tabGeneral:
+		return s.general.HandleMouse(x, y, content, buttons)
+	case tabSession:
+		return s.session.HandleMouse(x, y, content, buttons)
+	case tabMCP:
+		return s.mcp.HandleMouse(x, y, buttons)
+	case tabSkills:
+		return s.skills.HandleMouse(x, y, buttons)
+	case tabRules:
+		return s.rules.HandleMouse(x, y, buttons)
+	case tabPlugins:
+		return s.plugins.HandleMouse(x, y, buttons)
+	case tabPermissions:
+		return s.permissions.HandleMouse(x, y, content, buttons)
+	case tabMemory:
+		return s.memory.HandleMouse(x, y, content, buttons)
+	case tabSystem:
+		return s.system.HandleMouse(x, y, content, buttons)
+	}
+	return false
 }

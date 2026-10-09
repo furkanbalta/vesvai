@@ -38,6 +38,10 @@ func (t *skillsTab) HandleKey(ev *tcell.EventKey) bool {
 	return t.list.HandleKey(ev)
 }
 
+func (t *skillsTab) HandleMouse(x, y int, buttons tcell.ButtonMask) bool {
+	return t.list.HandleMouse(x, y, buttons)
+}
+
 func (t *skillsTab) Draw(s tcell.Screen, bounds layout.Region, focused bool) {
 	t.list.Draw(s, bounds, focused)
 }

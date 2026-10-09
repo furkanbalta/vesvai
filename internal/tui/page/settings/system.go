@@ -47,6 +47,18 @@ func (t *systemTab) HandleKey(ev *tcell.EventKey) bool {
 	return false
 }
 
+func (t *systemTab) HandleMouse(x, y int, bounds layout.Region, buttons tcell.ButtonMask) bool {
+	idx := y - bounds.Top
+	if idx < 0 || idx >= systemRowCount {
+		return false
+	}
+	t.index = idx
+	if buttons&tcell.ButtonPrimary != 0 && idx == systemRowCount-1 && !t.checking {
+		t.checkUpdate()
+	}
+	return true
+}
+
 func (t *systemTab) checkUpdate() {
 	t.checking = true
 	t.status = "Checking..."
