@@ -78,6 +78,10 @@ func (m *mockStore) TruncateAfter(sessionID, messageID string) ([]session.Messag
 	return nil, nil
 }
 
+func (m *mockStore) TruncateFrom(sessionID, messageID string) ([]session.Message, error) {
+	return nil, nil
+}
+
 func (m *mockStore) SaveSnapshot(s session.Snapshot) error { return nil }
 func (m *mockStore) Snapshots(sessionID string) ([]session.Snapshot, error) {
 	return nil, nil

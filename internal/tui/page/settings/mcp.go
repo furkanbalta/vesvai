@@ -72,6 +72,10 @@ func (t *mcpTab) HandleKey(ev *tcell.EventKey) bool {
 	return t.list.HandleKey(ev)
 }
 
+func (t *mcpTab) HandleMouse(x, y int, buttons tcell.ButtonMask) bool {
+	return t.list.HandleMouse(x, y, buttons)
+}
+
 func (t *mcpTab) Draw(s tcell.Screen, bounds layout.Region, focused bool) {
 	t.list.Draw(s, bounds, focused)
 }

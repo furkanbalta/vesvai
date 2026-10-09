@@ -191,10 +191,125 @@ func TestSettingsSelectedModelEmptyDisplay(t *testing.T) {
 	}
 }
 
+func TestSettingsAllTabsMouseSmoke(t *testing.T) {
+	styles.RegisterDefaults()
+	styles.Set("dark")
+	for i := 0; i < len(tabNames); i++ {
+		s := New(Deps{})
+		s.tab = tabKind(i)
+		s.tabs.SetActive(i)
+		drawSettings(t, 100, 30, s)
+		content := s.contentRegion()
+		for y := content.Top; y < content.Bottom() && y < content.Top+12; y++ {
+			s.HandleMouse(content.Left+2, y, tcell.ButtonPrimary)
+			s.HandleMouse(content.Left+2, y, tcell.WheelDown)
+			if s.sub != nil {
+				s.HandleKey(tcell.NewEventKey(tcell.KeyEsc, 0, 0))
+				drawSettings(t, 100, 30, s)
+				content = s.contentRegion()
+			}
+		}
+	}
+}
+
 func TestSettingsSetSelectedModelUsesID(t *testing.T) {
 	s := New(Deps{})
 	s.SetSelectedModel("p", llm.Model{ID: "m1"})
 	if got := s.modelDisplay(); got != "p/m1" {
 		t.Errorf("modelDisplay = %q, want p/m1", got)
+	}
+}
+
+func TestSettingsTabClick(t *testing.T) {
+	styles.RegisterDefaults()
+	styles.Set("dark")
+	s := New(Deps{})
+	drawSettings(t, 100, 30, s)
+	inner := s.innerRegion()
+
+	var targetX int
+	for x := inner.Left; x < inner.Right(); x++ {
+		if idx, ok := s.tabs.HandleMouse(x, inner.Top); ok && idx == 1 {
+			targetX = x
+			break
+		}
+	}
+	if targetX == 0 {
+		t.Fatal("could not locate the Session tab")
+	}
+	if !s.HandleMouse(targetX, inner.Top, tcell.ButtonPrimary) {
+		t.Fatal("tab click should be handled")
+	}
+	if s.tab != tabSession {
+		t.Fatalf("tab = %v, want Session", s.tab)
+	}
+}
+
+func TestSettingsGeneralRowClick(t *testing.T) {
+	styles.RegisterDefaults()
+	styles.Set("dark")
+	s := New(Deps{})
+	drawSettings(t, 100, 30, s)
+	content := s.contentRegion()
+
+	if !s.HandleMouse(content.Left+2, content.Top, tcell.ButtonPrimary) {
+		t.Fatal("row click should be handled")
+	}
+	if s.sub == nil {
+		t.Fatal("clicking the Provider row should open a sub-modal")
+	}
+}
+
+func TestSettingsOutsideClickCloses(t *testing.T) {
+	styles.RegisterDefaults()
+	styles.Set("dark")
+	s := New(Deps{})
+	closed := false
+	s.SetOnClose(func() { closed = true })
+	drawSettings(t, 100, 30, s)
+
+	if !s.HandleMouse(0, 0, tcell.ButtonPrimary) {
+		t.Fatal("outside click should be handled")
+	}
+	if !closed {
+		t.Fatal("clicking outside the dialog should close it")
+	}
+}
+
+func TestListModalMouse(t *testing.T) {
+	styles.RegisterDefaults()
+	styles.Set("dark")
+	l := components.NewList("x")
+	l.SetItems([]components.ListItem{{Label: "a"}, {Label: "b"}})
+	selected := -1
+	l.SetOnSelect(func(i int, _ components.ListItem) { selected = i })
+	back := false
+	m := &listModal{title: "x", list: l, onBack: func() { back = true }}
+	screen := newSim(t, 60, 20)
+	m.Draw(screen, layout.Region{Left: 0, Top: 0, Width: 60, Height: 20}, true)
+
+	if !m.HandleMouse(m.region.Left+1, m.region.Top, tcell.ButtonPrimary) {
+		t.Fatal("list click should be handled")
+	}
+	if selected != 0 {
+		t.Fatalf("selected = %d, want 0", selected)
+	}
+	m.HandleMouse(0, 0, tcell.ButtonPrimary)
+	if !back {
+		t.Fatal("clicking outside the list modal should close it")
+	}
+}
+
+func TestSettingsListTabClick(t *testing.T) {
+	styles.RegisterDefaults()
+	styles.Set("dark")
+	s := New(Deps{})
+	s.tab = tabPlugins
+	s.tabs.SetActive(int(tabPlugins))
+	drawSettings(t, 100, 30, s)
+	content := s.contentRegion()
+
+	if !s.HandleMouse(content.Left+2, content.Top, tcell.ButtonPrimary) {
+		t.Fatal("click on a list item should be handled")
 	}
 }

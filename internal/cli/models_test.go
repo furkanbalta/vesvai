@@ -65,6 +65,7 @@ func TestAvailableModelsListsSmartRouterWhenEnabled(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	cfg := config.DefaultConfig()
 	cfg.SmartRouter.Enabled = true
+	cfg.Providers = nil
 	if err := config.Save(cfg); err != nil {
 		t.Fatal(err)
 	}

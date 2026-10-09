@@ -242,8 +242,7 @@ The same resolution logic backs the HTTP `/api/run` endpoint and the ACP server.
 
 ## Model metadata
 
-Model lists are enriched with metadata fetched from
-`https://models.opencode.ai/api.json` and cached under the `models_cache` key. For
+Model lists are enriched with metadata fetched and cached under the `models_cache` key. For
 each model this includes:
 
 | Field | Used for |

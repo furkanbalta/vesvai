@@ -402,6 +402,29 @@ func lineText(l Line) string {
 	return b.String()
 }
 
+func TestChatErrorWrapsLongMessage(t *testing.T) {
+	styles.RegisterDefaults()
+	styles.Set("dark")
+	c := NewChat()
+	it := &ChatItem{Kind: ItemError, Text: strings.Repeat("boom ", 10)}
+	lines := c.itemLines(it, 20)
+	if len(lines) < 2 {
+		t.Fatalf("expected the error to wrap, got %d line(s)", len(lines))
+	}
+	for _, l := range lines {
+		if l.Width() > 20 {
+			t.Fatalf("error line %q exceeds width 20", lineText(l))
+		}
+	}
+	joined := ""
+	for _, l := range lines {
+		joined += lineText(l)
+	}
+	if strings.Count(joined, "boom") != 10 {
+		t.Fatalf("error text lost while wrapping: %q", joined)
+	}
+}
+
 func BenchmarkChatStreamingDraw(b *testing.B) {
 	styles.RegisterDefaults()
 	styles.Set("dark")

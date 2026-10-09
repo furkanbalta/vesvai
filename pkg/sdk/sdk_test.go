@@ -159,8 +159,10 @@ func TestChatStream(t *testing.T) {
 }
 
 func TestChatRequiresProvider(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.Providers = nil
 	eng, err := Open(context.Background(), Options{
-		Config:     config.DefaultConfig(),
+		Config:     cfg,
 		Workspace:  t.TempDir(),
 		SessionDir: t.TempDir() + "/s",
 	})

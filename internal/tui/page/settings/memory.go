@@ -236,6 +236,85 @@ func (t *memoryTab) HandleKey(ev *tcell.EventKey) bool {
 	return false
 }
 
+func (t *memoryTab) HandleMouse(x, y int, bounds layout.Region, buttons tcell.ButtonMask) bool {
+	t.loadIfNeeded()
+	row := y - bounds.Top
+	wheel := buttons&(tcell.WheelUp|tcell.WheelDown) != 0
+	up := buttons&tcell.WheelUp != 0
+
+	adjust := func(f memoryFocus) bool {
+		switch f {
+		case memoryFocusEnabled:
+			t.enabled = !t.enabled
+		case memoryFocusGate:
+			dir := 1
+			if up {
+				dir = -1
+			}
+			t.cycleGate(dir)
+		case memoryFocusThreshold:
+			if !t.gateUsesThreshold() {
+				return false
+			}
+			if up {
+				t.adjustThreshold(-0.05)
+			} else {
+				t.adjustThreshold(0.05)
+			}
+		case memoryFocusBudget:
+			if up {
+				t.adjustBudget(-500)
+			} else {
+				t.adjustBudget(500)
+			}
+		case memoryFocusMaxResults:
+			if up {
+				t.adjustMaxResults(-1)
+			} else {
+				t.adjustMaxResults(1)
+			}
+		case memoryFocusConsolidate:
+			t.consolidate = !t.consolidate
+		default:
+			return false
+		}
+		t.save()
+		return true
+	}
+
+	if row >= 0 && row < 7 {
+		f := memoryFocus(row)
+		t.focus = f
+		if wheel {
+			adjust(f)
+			return true
+		}
+		if buttons&tcell.ButtonPrimary != 0 {
+			if f == memoryFocusObserver {
+				t.openObserverModels()
+				return true
+			}
+			adjust(f)
+		}
+		return true
+	}
+	switch row {
+	case 9:
+		t.focus = memoryFocusEntries
+		return true
+	case 10:
+		t.focus = memoryFocusLastEntry
+		return true
+	case 11:
+		t.focus = memoryFocusClear
+		if buttons&tcell.ButtonPrimary != 0 {
+			t.openClearConfirm()
+		}
+		return true
+	}
+	return false
+}
+
 func (t *memoryTab) Draw(screen tcell.Screen, bounds layout.Region, focused bool) {
 	t.loadIfNeeded()
 	th := styles.Current()

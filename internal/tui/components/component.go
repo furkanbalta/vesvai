@@ -21,3 +21,8 @@ type Focusable interface {
 	Blur()
 	Focused() bool
 }
+
+type MouseComponent interface {
+	Component
+	HandleMouse(x, y int, buttons tcell.ButtonMask) bool
+}
