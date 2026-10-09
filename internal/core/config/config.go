@@ -214,6 +214,11 @@ type Config struct {
 
 func DefaultConfig() *Config {
 	return &Config{
+		Providers: []LLMConfig{
+			{
+				Provider: "opencode-zen",
+			},
+		},
 		Logger: LoggerConfig{
 			Driver:      "sqlite",
 			MaxLogCount: 1000,
